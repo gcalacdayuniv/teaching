@@ -9,7 +9,7 @@ The client-side is a static Single-Page Application (SPA) using Vanilla JavaScri
 
 index.html & styles.css: The static layout shell. index.html loads the app via <script type="module" src="./js/app.js"></script>.
 
-js/globals.js: Core configurations (points to the Worker API domain) and shared utilities (currency/date formatting). No secrets are stored here.
+js/globals.js: Core configurations (points to the Worker API domain), shared utilities (currency parsing and date formatting), and a centralized API wrapper (handling all fetch requests and JSON parsing). No secrets are stored here.
 
 js/components.js: Manages dynamic injection of HTML components (Modals, Overlays, View Panels) via JavaScript template literals to keep index.html completely static.
 
@@ -21,16 +21,16 @@ js/profile.js: Handles user profile updates mapping to the user's UUID and HTML5
 
 js/hours-logger.js: Features a Batch Session Generator. Auto-calculates End Time based on Start Time + Hours. Loops through dates (every 7 days) up to an End Date and submits an array of records to the backend.
 
-js/records-viewer.js: Handles data fetching, batch-selection checkboxes, summary card calculations, and the data table.
+js/records-viewer.js: Handles data fetching, flexible date filtering, summary card calculations, the data table, batch-selection (Select All) checkboxes, and executing the batch payment utility (Mark Paid).
 
-js/payment-ledger.js: Controls the batch assignment utility (Mark Paid) and Payment History aggregations.
+js/payment-ledger.js: Controls the Payment History aggregations and summary modal display.
 
 js/resources.js: Controls the automated link aggregator card layout.
 
 js/app.js: The master orchestrator that imports and initializes all modules.
 
 2. Backend API (Cloudflare Workers: teachapi.plv.workers.dev)
-URL_API.js: The centralized edge controller. It implements strict CORS headers locked to the frontend domain. It parses payloads (login, update_profile, add_hours_batch, update_payment) and securely executes native SQL queries using the Cloudflare D1 API (env.DB.prepare).
+worker/index.js (or url_api.js): The centralized edge controller. It implements strict CORS headers locked to the frontend domain using environment variables (env.ALLOWED_ORIGIN). It parses payloads (login, update_profile, add_hours_batch, update_payment) and securely executes native SQL queries using the Cloudflare D1 API (env.DB.prepare).
 
 3. Database Layer (Cloudflare D1 - Serverless SQLite)
 The database uses Universally Unique Identifiers (UUIDs) for all primary keys, generated on the edge via crypto.randomUUID().
