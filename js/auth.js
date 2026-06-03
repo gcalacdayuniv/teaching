@@ -53,7 +53,9 @@ export const AuthManager = {
                 // Store avatar, or empty string if null
                 localStorage.setItem('teaching_user_avatar', result.user.Avatar || '');
                 
-                document.getElementById('loginForm').reset();
+                const form = document.getElementById('loginForm');
+                if (form) form.reset();
+                
                 this.updateUI();
                 
                 // Trigger route re-check to hide login screen and show app shell
