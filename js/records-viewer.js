@@ -3,7 +3,24 @@ import { CONFIG, Utils } from './globals.js';
 
 export const RecordsManager = {
     init: () => {
-        document.getElementById('fetchRecordsBtn').addEventListener('click', RecordsManager.fetchData);
+        const fetchBtn = document.getElementById('fetchRecordsBtn');
+        if (fetchBtn) fetchBtn.addEventListener('click', RecordsManager.fetchData);
+
+        // Check All listener
+        const selectAll = document.getElementById('selectAllRecords');
+        if (selectAll) {
+            selectAll.addEventListener('change', (e) => {
+                document.querySelectorAll('.record-checkbox').forEach(cb => {
+                    cb.checked = e.target.checked;
+                });
+            });
+        }
+
+        // Mark Paid listener
+        const markPaidBtn = document.getElementById('markPaidBtn');
+        if (markPaidBtn) {
+            markPaidBtn.addEventListener('click', RecordsManager.markAsPaid);
+        }
     },
 
     fetchData: async () => {
@@ -11,8 +28,6 @@ export const RecordsManager = {
         const end = document.getElementById('filterEnd').value; 
         const type = document.getElementById('filterType').value; 
         const tbody = document.getElementById('dataTableBody');
-        
-        if(!start || !end) return alert("Select both start and end dates.");
         
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>';
         
@@ -24,7 +39,12 @@ export const RecordsManager = {
             let h = 0, p = 0, u = 0;
             const filtered = data.filter(r => {
                 const d = type === 'Paid' ? r.Date_Paid : r.Date;
-                const match = d >= start && d <= end;
+                
+                // Flexible Filtering Logic
+                let match = true;
+                if (start && d < start) match = false;
+                if (end && d > end) match = false;
+
                 if(match) {
                     h += parseFloat(r.Total_Hours || 0);
                     const earn = parseFloat(String(r.Total_Earnings).replace(/[^0-9.-]+/g,"") || 0);
@@ -37,6 +57,10 @@ export const RecordsManager = {
             document.getElementById('summaryPaid').innerText = Utils.formatCurrency(p);
             document.getElementById('summaryUnpaid').innerText = Utils.formatCurrency(u);
             
+            // Reset select all checkbox if it exists
+            const selectAll = document.getElementById('selectAllRecords');
+            if (selectAll) selectAll.checked = false;
+
             tbody.innerHTML = filtered.length ? filtered.map(r => `
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-4 py-3 text-center">${r.Payment_Status !== 'Paid' ? `<input type="checkbox" value="${r.Entry_ID}" class="record-checkbox w-4 h-4 rounded text-blue-600">` : ''}</td>
@@ -51,6 +75,55 @@ export const RecordsManager = {
             `).join('') : '<tr><td colspan="8" class="text-center py-10 text-gray-400">No records found.</td></tr>';
         } catch(e) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-red-500 font-bold">Failed to load data.</td></tr>';
+        }
+    },
+
+    markAsPaid: async () => {
+        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            return alert("Select at least one record to mark as paid.");
+        }
+
+        const datePaid = prompt("Enter payment date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        if (!datePaid) return; // Action cancelled by the user
+
+        const entryIds = Array.from(checkedBoxes).map(cb => cb.value);
+        const btn = document.getElementById('markPaidBtn');
+        const originalBtnHTML = btn ? btn.innerHTML : '';
+
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            btn.disabled = true;
+        }
+
+        try {
+            const response = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'update_payment',
+                    entryIds: entryIds,
+                    datePaid: datePaid
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                alert(`Successfully marked ${entryIds.length} records as paid.`);
+                RecordsManager.fetchData(); // Refresh the table automatically
+            } else {
+                alert("Failed to update records: " + (data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            alert("An error occurred while updating the records.");
+            console.error("Payment Update Error:", error);
+        } finally {
+            if (btn) {
+                btn.innerHTML = originalBtnHTML; // Restore button state
+                btn.disabled = false;
+            }
         }
     }
 };
