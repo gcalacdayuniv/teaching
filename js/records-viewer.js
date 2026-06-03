@@ -1,5 +1,5 @@
 // records-viewer.js
-import { CONFIG, Utils } from './globals.js';
+import { CONFIG, Utils, API } from './globals.js';
 
 export const RecordsManager = {
     init: () => {
@@ -32,9 +32,8 @@ export const RecordsManager = {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>';
         
         try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}`;
-            const res = await fetch(url);
-            const data = await res.json();
+            // REFACTORED: Using the centralized API utility
+            const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
             
             let h = 0, p = 0, u = 0;
             const filtered = data.filter(r => {
@@ -47,7 +46,8 @@ export const RecordsManager = {
 
                 if(match) {
                     h += parseFloat(r.Total_Hours || 0);
-                    const earn = parseFloat(String(r.Total_Earnings).replace(/[^0-9.-]+/g,"") || 0);
+                    // REFACTORED: Using the clean Utils.parseCurrency
+                    const earn = Utils.parseCurrency(r.Total_Earnings);
                     if(r.Payment_Status === 'Paid') p += earn; else u += earn;
                 }
                 return match;
@@ -68,7 +68,7 @@ export const RecordsManager = {
                     <td class="px-4 py-3 text-[11px] sm:text-xs">${r.University}<br><span class="text-gray-400 font-normal">${r.College}</span></td>
                     <td class="px-4 py-3 text-[11px] sm:text-xs">${r.Subject_Code}</td>
                     <td class="px-4 py-3 font-bold">${r.Total_Hours}</td>
-                    <td class="px-4 py-3">${Utils.formatCurrency(String(r.Total_Earnings).replace(/[^0-9.-]+/g,""))}</td>
+                    <td class="px-4 py-3">${Utils.formatCurrency(Utils.parseCurrency(r.Total_Earnings))}</td>
                     <td class="px-4 py-3"><span class="px-2 py-1 rounded text-[10px] font-bold ${r.Payment_Status==='Paid'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}">${r.Payment_Status}</span></td>
                     <td class="px-4 py-3 text-[10px] text-gray-400 font-normal">${r.Date_Paid ? Utils.formatDateYYYYMMDD(r.Date_Paid) : '-'}</td>
                 </tr>
@@ -98,18 +98,12 @@ export const RecordsManager = {
         }
 
         try {
-            // FIXED: Changed CONFIG.ENDPOINTS.ACTION to CONFIG.ENDPOINTS.POST_ACTION
-            const response = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'update_payment',
-                    entryIds: entryIds,
-                    datePaid: datePaid
-                })
+            // REFACTORED: Using the centralized API utility
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                action: 'update_payment',
+                entryIds: entryIds,
+                datePaid: datePaid
             });
-            
-            const data = await response.json();
             
             if (data.status === 'success') {
                 alert(`Successfully marked ${entryIds.length} records as paid.`);
