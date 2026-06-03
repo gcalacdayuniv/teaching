@@ -6,6 +6,7 @@ import { LoggerManager } from './hours-logger.js';
 import { RecordsManager } from './records-viewer.js';
 import { LedgerManager } from './payment-ledger.js';
 import { ProfileManager } from './profile.js';
+import { ResourcesManager } from './resources.js';
 
 initApp();
 
@@ -19,11 +20,14 @@ function initApp() {
 
         // 3. Initialize all modular domains
         AuthManager.init();
-        AppRouter.init();
-        LoggerManager.init();
+        ResourcesManager.init(); // Initializes the resource module globally
         RecordsManager.init();
+        LoggerManager.init();
         LedgerManager.init();
         ProfileManager.init();
+        
+        // 4. Boot the router last to handle the initial view
+        AppRouter.init();
         
         console.log("Teaching Portal Modular Architecture Loaded Successfully");
     } catch (error) {
@@ -93,7 +97,7 @@ function setupUI() {
         }
     };
 
-    // Style active tab in bottom navigation dynamically
+    // Style active tab in bottom navigation dynamically based on URL hash
     window.addEventListener('hashchange', () => {
         const currentHash = window.location.hash;
         document.querySelectorAll('.menu-link').forEach(link => {
@@ -105,8 +109,5 @@ function setupUI() {
                 link.classList.add('text-gray-500');
             }
         });
-        
-        // Ensure FAB closes when navigating
-        window.closeAllMenus();
     });
 }
