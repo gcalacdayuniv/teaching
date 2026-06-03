@@ -1,10 +1,8 @@
 // payment-ledger.js
-import { CONFIG, Utils } from './globals.js';
+import { CONFIG, Utils, API } from './globals.js';
 
 export const LedgerManager = {
     init: () => {
-        // The Mark Paid logic is now managed by RecordsManager in records-viewer.js
-        // We only initialize the Summary modal here.
         document.getElementById('openSummaryBtn').addEventListener('click', LedgerManager.showSummary);
         document.getElementById('closeSummaryBtn').addEventListener('click', () => LedgerManager.closeModal('summaryModal'));
     },
@@ -21,14 +19,14 @@ export const LedgerManager = {
         tbody.innerHTML = '<tr><td colspan="2" class="text-center py-10">Loading...</td></tr>';
         
         try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}`;
-            const res = await fetch(url);
-            const data = await res.json();
+            // REFACTORED: Using the centralized API utility
+            const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
             
             const group = data.reduce((acc, r) => {
                 if(r.Payment_Status === 'Paid' && r.Date_Paid) {
                     const cleanDate = Utils.formatDateYYYYMMDD(r.Date_Paid);
-                    acc[cleanDate] = (acc[cleanDate] || 0) + parseFloat(String(r.Total_Earnings).replace(/[^0-9.-]+/g,"") || 0);
+                    // REFACTORED: Using the clean Utils.parseCurrency
+                    acc[cleanDate] = (acc[cleanDate] || 0) + Utils.parseCurrency(r.Total_Earnings);
                 }
                 return acc;
             }, {});
