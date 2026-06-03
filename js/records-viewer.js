@@ -29,6 +29,8 @@ export const RecordsManager = {
         const type = document.getElementById('filterType').value; 
         const tbody = document.getElementById('dataTableBody');
         
+        // The alert block has been completely removed to allow blank states
+        
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>';
         
         try {
@@ -40,10 +42,15 @@ export const RecordsManager = {
             const filtered = data.filter(r => {
                 const d = type === 'Paid' ? r.Date_Paid : r.Date;
                 
-                // Flexible Filtering Logic
+                // --- FLEXIBLE DATE FILTERING LOGIC ---
                 let match = true;
+                
+                // If a start date is provided and the record is older, exclude it
                 if (start && d < start) match = false;
+                
+                // If an end date is provided and the record is newer, exclude it
                 if (end && d > end) match = false;
+                // -------------------------------------
 
                 if(match) {
                     h += parseFloat(r.Total_Hours || 0);
@@ -57,7 +64,7 @@ export const RecordsManager = {
             document.getElementById('summaryPaid').innerText = Utils.formatCurrency(p);
             document.getElementById('summaryUnpaid').innerText = Utils.formatCurrency(u);
             
-            // Reset select all checkbox if it exists
+            // Reset the "Select All" checkbox if the table reloads
             const selectAll = document.getElementById('selectAllRecords');
             if (selectAll) selectAll.checked = false;
 
@@ -86,7 +93,7 @@ export const RecordsManager = {
         }
 
         const datePaid = prompt("Enter payment date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (!datePaid) return; // Action cancelled by the user
+        if (!datePaid) return; 
 
         const entryIds = Array.from(checkedBoxes).map(cb => cb.value);
         const btn = document.getElementById('markPaidBtn');
@@ -112,7 +119,7 @@ export const RecordsManager = {
             
             if (data.status === 'success') {
                 alert(`Successfully marked ${entryIds.length} records as paid.`);
-                RecordsManager.fetchData(); // Refresh the table automatically
+                RecordsManager.fetchData(); 
             } else {
                 alert("Failed to update records: " + (data.message || 'Unknown error'));
             }
@@ -121,7 +128,7 @@ export const RecordsManager = {
             console.error("Payment Update Error:", error);
         } finally {
             if (btn) {
-                btn.innerHTML = originalBtnHTML; // Restore button state
+                btn.innerHTML = originalBtnHTML; 
                 btn.disabled = false;
             }
         }
