@@ -1,0 +1,56 @@
+/* =========================================
+   Global Base Styles
+   ========================================= */
+html {
+    scroll-behavior: smooth;
+}
+
+/* =========================================
+   Custom Webkit Scrollbars (For a cleaner UI)
+   ========================================= */
+.custom-scrollbar::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1; /* Tailwind slate-300 */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8; /* Tailwind slate-400 */
+}
+
+/* =========================================
+   Form Input Resets
+   ========================================= */
+/* Remove default arrows from number inputs for a cleaner look */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+input[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+}
+
+/* Ensure inputs don't zoom in on iOS Safari when focused */
+@media screen and (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
