@@ -1,4 +1,4 @@
-// components.js
+// js/components.js
 
 export function injectComponents() {
     const mainView = document.getElementById('main-view');
@@ -46,21 +46,27 @@ export function injectComponents() {
             <p class="text-lg text-center">Open the menu to get started.</p>
         </div>
 
-        <div id="logPanel" class="app-view hidden max-w-2xl mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6">
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 border-b pb-3"><i class="fas fa-clock text-blue-600 mr-2"></i>Log Teaching Session</h2>
-            <form id="logForm" class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div><label class="block text-xs font-semibold text-gray-700">Date</label><input type="date" id="date" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
-                    <div><label class="block text-xs font-semibold text-gray-700">Start</label><input type="time" id="startTime" class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
-                    <div><label class="block text-xs font-semibold text-gray-700">End</label><input type="time" id="endTime" class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
+        <div id="logPanel" class="app-view hidden max-w-3xl mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+            <div class="flex justify-between items-center mb-6 border-b pb-3">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fas fa-calendar-plus text-blue-600 mr-2"></i>Batch Session Generator</h2>
+            </div>
+            
+            <form id="logForm" class="space-y-6">
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Common Institution Data</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-semibold text-gray-700">University</label><input type="text" id="commonUniversity" list="uniList" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-700">Department / College</label><input type="text" id="commonCollege" list="colList" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
+                    </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div><label class="block text-xs font-semibold text-gray-700">Hours</label><input type="number" id="hours" step="0.5" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
-                    <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-700">University</label><input type="text" id="university" list="uniList" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
+
+                <div id="schedule-container" class="space-y-4">
+                    </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                    <button type="button" id="addScheduleBtn" class="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-lg hover:bg-gray-200 transition border"><i class="fas fa-plus mr-2"></i> Add Another Subject</button>
+                    <button type="submit" id="logSubmitBtn" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition shadow"><i class="fas fa-save mr-2"></i> Generate & Save All</button>
                 </div>
-                <div><label class="block text-xs font-semibold text-gray-700">College</label><input type="text" id="college" list="colList" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
-                <div><label class="block text-xs font-semibold text-gray-700">Subject Code</label><input type="text" id="subject" list="subList" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
-                <button type="submit" id="logSubmitBtn" class="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition mt-4">Save Record</button>
                 <p id="logStatusMsg" class="text-center text-sm hidden mt-3"></p>
             </form>
         </div>
