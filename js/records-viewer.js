@@ -29,8 +29,6 @@ export const RecordsManager = {
         const type = document.getElementById('filterType').value; 
         const tbody = document.getElementById('dataTableBody');
         
-        // The alert block has been completely removed to allow blank states
-        
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>';
         
         try {
@@ -42,15 +40,10 @@ export const RecordsManager = {
             const filtered = data.filter(r => {
                 const d = type === 'Paid' ? r.Date_Paid : r.Date;
                 
-                // --- FLEXIBLE DATE FILTERING LOGIC ---
+                // Flexible Filtering Logic
                 let match = true;
-                
-                // If a start date is provided and the record is older, exclude it
                 if (start && d < start) match = false;
-                
-                // If an end date is provided and the record is newer, exclude it
                 if (end && d > end) match = false;
-                // -------------------------------------
 
                 if(match) {
                     h += parseFloat(r.Total_Hours || 0);
@@ -64,7 +57,7 @@ export const RecordsManager = {
             document.getElementById('summaryPaid').innerText = Utils.formatCurrency(p);
             document.getElementById('summaryUnpaid').innerText = Utils.formatCurrency(u);
             
-            // Reset the "Select All" checkbox if the table reloads
+            // Reset select all checkbox if it exists
             const selectAll = document.getElementById('selectAllRecords');
             if (selectAll) selectAll.checked = false;
 
@@ -105,7 +98,8 @@ export const RecordsManager = {
         }
 
         try {
-            const response = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+            // FIXED: Changed CONFIG.ENDPOINTS.ACTION to CONFIG.ENDPOINTS.POST_ACTION
+            const response = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -119,7 +113,7 @@ export const RecordsManager = {
             
             if (data.status === 'success') {
                 alert(`Successfully marked ${entryIds.length} records as paid.`);
-                RecordsManager.fetchData(); 
+                RecordsManager.fetchData(); // Refresh the table automatically
             } else {
                 alert("Failed to update records: " + (data.message || 'Unknown error'));
             }
