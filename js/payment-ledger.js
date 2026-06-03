@@ -1,42 +1,91 @@
-import { CONFIG, Utils, API } from './globals.js';
+import { CONFIG } from './globals.js';
+import { fetchRecords } from './records-viewer.js';
 
-export const LedgerManager = {
-    init: () => {
-        document.getElementById('openSummaryBtn').addEventListener('click', LedgerManager.showSummary);
-        document.getElementById('closeSummaryBtn').addEventListener('click', () => LedgerManager.closeModal('summaryModal'));
-    },
+export function initLedger() {
+    const markPaidBtn = document.getElementById('markPaidBtn');
+    const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+    const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
 
-    closeModal: (id) => {
-        const el = document.getElementById(id);
-        el.classList.add('hidden'); el.classList.remove('flex');
-    },
+    if (markPaidBtn) markPaidBtn.addEventListener('click', openPaymentModal);
+    if (cancelPaymentBtn) cancelPaymentBtn.addEventListener('click', closePaymentModal);
+    if (confirmPaymentBtn) confirmPaymentBtn.addEventListener('click', processPayment);
 
-    showSummary: async () => {
-        const modal = document.getElementById('summaryModal');
-        const tbody = document.getElementById('summaryTableBody');
-        modal.classList.remove('hidden'); modal.classList.add('flex');
-        tbody.innerHTML = '<tr><td colspan="2" class="text-center py-10">Loading...</td></tr>';
-        
-        try {
-            const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
-            
-            const group = data.reduce((acc, r) => {
-                if(r.Payment_Status === 'Paid' && r.Date_Paid) {
-                    const cleanDate = Utils.formatDateYYYYMMDD(r.Date_Paid);
-                    acc[cleanDate] = (acc[cleanDate] || 0) + Utils.parseCurrency(r.Total_Earnings);
-                }
-                return acc;
-            }, {});
-            
-            const sorted = Object.keys(group).sort((a,b) => new Date(a) - new Date(b));
-            let grandTotal = 0;
-            
-            tbody.innerHTML = sorted.length ? sorted.map(d => {
-                grandTotal += group[d];
-                return `<tr><td class="p-3 border-b">${d}</td><td class="p-3 border-b text-right font-bold">${Utils.formatCurrency(group[d])}</td></tr>`;
-            }).join('') + `<tr class="bg-gray-100 font-bold text-gray-900"><td class="p-3 border-b text-right uppercase text-xs">Grand Total</td><td class="p-3 border-b text-right text-emerald-700">${Utils.formatCurrency(grandTotal)}</td></tr>` : '<tr><td colspan="2" class="p-10 text-center">No history.</td></tr>';
-        } catch(e) {
-             tbody.innerHTML = '<tr><td colspan="2" class="p-10 text-center text-red-500">Error loading.</td></tr>';
+    // Use event delegation for dynamically created checkboxes
+    document.addEventListener('change', (e) => {
+        if (e.target && e.target.id === 'selectAllRecords') {
+            const isChecked = e.target.checked;
+            document.querySelectorAll('.record-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+            });
         }
+    });
+}
+
+function openPaymentModal() {
+    const selected = document.querySelectorAll('.record-checkbox:checked');
+    if (selected.length === 0) {
+        alert('Please select at least one unpaid record to mark as paid.');
+        return;
     }
-};
+    
+    const dateInput = document.getElementById('selectedPaymentDate');
+    if(dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+function closePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+}
+
+async function processPayment() {
+    const selected = document.querySelectorAll('.record-checkbox:checked');
+    const entryIds = Array.from(selected).map(cb => cb.dataset.id);
+    const datePaid = document.getElementById('selectedPaymentDate').value;
+    
+    if (entryIds.length === 0 || !datePaid) return;
+    
+    const btn = document.getElementById('confirmPaymentBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true;
+    
+    try {
+        const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION || CONFIG.ENDPOINTS.ACTION}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_payment',
+                entry_ids: entryIds,
+                date_paid: datePaid
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success || result.status === 'success') {
+            closePaymentModal();
+            
+            const selectAll = document.getElementById('selectAllRecords');
+            if (selectAll) selectAll.checked = false;
+            
+            await fetchRecords();
+        } else {
+            alert(result.message || 'Error updating payment.');
+        }
+    } catch (error) {
+        alert('Network error while processing payment.');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
