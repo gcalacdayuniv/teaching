@@ -132,7 +132,7 @@ export default {
         return new Response(JSON.stringify({ status: "error", message: error.message }), { 
           status: 500, headers: { "content-type": "application/json", ...corsHeaders } 
         });
-      }
+      } 
     }
 
     return new Response(JSON.stringify({ error: "Endpoint not found" }), { 

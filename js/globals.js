@@ -1,7 +1,4 @@
-// globals.js
-
 export const CONFIG = {
-    // The URL of your new Cloudflare Worker API
     API_BASE: 'https://teachapi.plv.workers.dev',
     ENDPOINTS: {
         GET_DATA: '/api/data',
@@ -15,7 +12,6 @@ export const State = {
     resourceData: []
 };
 
-// Shared Utility Functions
 export const Utils = {
     formatCurrency: (amount) => {
         return new Intl.NumberFormat('en-PH', { 
@@ -24,7 +20,6 @@ export const Utils = {
         }).format(parseFloat(amount) || 0);
     },
     
-    // NEW: Centralized currency parser to clean up messy regex across files
     parseCurrency: (amountStr) => {
         if (!amountStr) return 0;
         return parseFloat(String(amountStr).replace(/[^0-9.-]+/g, "")) || 0;
@@ -41,7 +36,6 @@ export const Utils = {
     }
 };
 
-// NEW: Centralized API handler to remove duplicate fetch boilerplate across modules
 export const API = {
     get: async (endpoint, params = {}) => {
         const url = new URL(`${CONFIG.API_BASE}${endpoint}`);
