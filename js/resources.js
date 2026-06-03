@@ -1,4 +1,3 @@
-// resources.js
 import { CONFIG } from './globals.js';
 
 let resourcesData = [];
@@ -30,7 +29,8 @@ async function fetchResources() {
     tabs.innerHTML = '';
     
     try {
-        const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}?path=resources`;
+        // FIXED: Explicitly defining the /api/data path to prevent 'undefined' errors
+        const url = `${CONFIG.API_BASE}/api/data?path=resources`;
         const res = await fetch(url);
         resourcesData = await res.json();
         
@@ -146,7 +146,8 @@ async function handleResourceSubmit(e) {
     submitBtn.disabled = true;
 
     try {
-        const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+        // FIXED: Explicitly defining the /api/action path
+        const res = await fetch(`${CONFIG.API_BASE}/api/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -171,7 +172,8 @@ async function deleteResource(id) {
     if (!confirm('Are you sure you want to remove this link? (It can still be recovered from the database).')) return;
     
     try {
-        const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+        // FIXED: Explicitly defining the /api/action path
+        const res = await fetch(`${CONFIG.API_BASE}/api/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'delete_resource', resourceId: id })
