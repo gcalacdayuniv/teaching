@@ -22,33 +22,34 @@ export const AppRouter = {
         // 1. Hide all views first
         document.querySelectorAll('.app-view').forEach(view => {
             view.classList.add('hidden');
-            view.classList.remove('flex', 'flex-col'); // Remove display classes
+            view.classList.remove('flex', 'flex-col', 'block'); // Remove display classes
         });
 
         // 2. Authentication Route Guard
         if (!isLoggedIn) {
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('loginScreen').classList.add('flex');
-            document.getElementById('app-shell').classList.add('hidden');
-            document.getElementById('app-shell').classList.remove('flex');
+            const loginScreen = document.getElementById('loginScreen');
+            const appShell = document.getElementById('app-shell');
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+                loginScreen.classList.add('flex');
+            }
+            if (appShell) {
+                appShell.classList.add('hidden');
+                appShell.classList.remove('flex');
+            }
             return;
-        } else {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('flex');
-            document.getElementById('app-shell').classList.remove('hidden');
-            document.getElementById('app-shell').classList.add('flex');
         }
 
         // 3. Route matching & View Toggling
         if (hash === '#/log') {
             document.getElementById('logPanel').classList.remove('hidden');
-            document.getElementById('logPanel').classList.add('block'); // or flex based on your layout
+            document.getElementById('logPanel').classList.add('block');
             document.getElementById('appTitle').textContent = 'Log Session';
         } 
         else if (hash === '#/records') {
             const panel = document.getElementById('viewPanel');
             panel.classList.remove('hidden');
-            panel.classList.add('flex'); // Uses flex-col in components.js
+            panel.classList.add('flex');
             document.getElementById('appTitle').textContent = 'Records';
             
             // Auto-fetch fresh data when opening tab
