@@ -10,25 +10,22 @@ export const ResourcesManager = {
 
     init() {
         this.bindEvents();
-        // Expose globally for inline HTML onclick handlers
         window.ResourcesManager = this;
     },
 
     bindEvents() {
-        document.getElementById('resourceForm').addEventListener('submit', (e) => this.saveResource(e));
+        document.getElementById('resourceForm')?.addEventListener('submit', (e) => this.saveResource(e));
     },
 
     async fetchResources() {
-        const token = AuthManager.getToken();
-        if (!token) return;
+        if (!AuthManager.isLoggedIn()) return;
 
         try {
-            const response = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}?table=Resource_Links&condition=Is_Deleted=0`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}?table=Resource_Links&condition=Is_Deleted=0`;
+            const response = await fetch(url);
             const result = await response.json();
-            if (result.success) {
-                this.state.resources = result.data;
+            if (result.success || result.status === 'success') {
+                this.state.resources = result.data || result.records || [];
                 this.renderTabs();
                 this.renderResources();
             }
@@ -41,15 +38,12 @@ export const ResourcesManager = {
         const tabsContainer = document.getElementById('resourceTabs');
         if(!tabsContainer) return;
 
-        // Get unique categories
         const categories = [...new Set(this.state.resources.map(r => r.Category))].filter(Boolean).sort();
         const allCats = ['All', ...categories];
         
-        // Populate Datalist for Form
         const datalist = document.getElementById('existingCategories');
         if(datalist) datalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
 
-        // Generate Dashboard-style Buttons
         tabsContainer.innerHTML = allCats.map(cat => {
             const isActive = this.state.activeCategory === cat;
             const btnClass = isActive 
@@ -80,7 +74,6 @@ export const ResourcesManager = {
             return;
         }
 
-        // Render as a List View
         listContainer.innerHTML = filtered.map(r => `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition overflow-hidden flex items-center gap-3 p-3">
                 <div class="w-10 h-10 shrink-0 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
@@ -102,7 +95,6 @@ export const ResourcesManager = {
 
     async saveResource(e) {
         e.preventDefault();
-        const token = AuthManager.getToken();
         
         const payload = {
             action: 'saveResource',
@@ -118,19 +110,20 @@ export const ResourcesManager = {
         btn.disabled = true;
 
         try {
-            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`;
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             const result = await res.json();
             
-            if (result.success) {
+            if (result.success || result.status === 'success') {
                 document.getElementById('resourceModal').classList.add('hidden');
                 e.target.reset();
                 await this.fetchResources();
             } else {
-                alert(result.message);
+                alert(result.message || "Failed to save");
             }
         } catch (err) {
             alert("Connection error.");
@@ -158,19 +151,19 @@ export const ResourcesManager = {
     async deleteResource(id) {
         if (!confirm("Are you sure you want to remove this link?")) return;
         
-        const token = AuthManager.getToken();
         try {
-            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`;
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'deleteResource', Resource_ID: id })
             });
             const result = await res.json();
             
-            if (result.success) {
+            if (result.success || result.status === 'success') {
                 await this.fetchResources();
             } else {
-                alert(result.message);
+                alert(result.message || "Failed to delete");
             }
         } catch (err) {
             alert("Error deleting resource.");
