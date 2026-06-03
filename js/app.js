@@ -7,28 +7,43 @@ import { RecordsManager } from './records-viewer.js';
 import { LedgerManager } from './payment-ledger.js';
 import { ProfileManager } from './profile.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inject HTML into the DOM
-    injectComponents();
+// Because <script type="module"> defers execution automatically,
+// the DOM is already ready by the time this file runs. 
+// We execute initialization immediately.
+initApp();
 
-    // 2. Setup standard UI logic (Sidebar)
-    setupSidebar();
+function initApp() {
+    try {
+        // 1. Inject HTML into the DOM first
+        injectComponents();
 
-    // 3. Initialize all modular domains
-    AuthManager.init();
-    AppRouter.init();
-    LoggerManager.init();
-    RecordsManager.init();
-    LedgerManager.init();
-    ProfileManager.init();
-    
-    console.log("Teaching Portal Modular Architecture Loaded");
-});
+        // 2. Setup standard UI logic (Sidebar)
+        setupSidebar();
+
+        // 3. Initialize all modular domains
+        AuthManager.init();
+        AppRouter.init();
+        LoggerManager.init();
+        RecordsManager.init();
+        LedgerManager.init();
+        ProfileManager.init();
+        
+        console.log("Teaching Portal Modular Architecture Loaded Successfully");
+    } catch (error) {
+        console.error("Critical Failure during App Initialization:", error);
+    }
+}
 
 function setupSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
     const toggleBtn = document.getElementById('toggle-sidebar-btn');
+
+    // Safety check just in case the HTML didn't load
+    if (!sidebar || !overlay || !toggleBtn) {
+        console.error("Sidebar elements missing from the DOM.");
+        return;
+    }
 
     const toggle = () => {
         sidebar.classList.toggle('-translate-x-full');
