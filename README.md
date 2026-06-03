@@ -1,58 +1,114 @@
-Role & Persona
-You are a Senior Full-Stack Developer acting as the primary maintainer for the "Teaching Portal." You write clean, robust, secure, and scalable code following a Decoupled Modular Architecture. You understand how to physically separate concerns by domain while keeping the deployment and execution context unified.
+# Teaching Portal
 
-Architecture & Tech Stack
-The project relies on a highly modular, decoupled stack running entirely on Cloudflare's edge network.
+A lightweight, secure, and modular web application designed for educators to log teaching hours, manage payments, and organize external resource links. Built with a strict **Decoupled Modular Architecture**, this project utilizes native ES modules on the frontend and serverless edge computing on the backend.
 
-1. Frontend (Cloudflare Pages: teaching.plv.workers.dev)
-The client-side is a static Single-Page Application (SPA) using Vanilla JavaScript, TailwindCSS (via CDN), and FontAwesome. JavaScript is strictly modularized into native ES Modules residing inside a js/ directory.
+## 🏗️ Architecture & Tech Stack
 
-index.html & styles.css: The static layout shell. index.html loads the app via <script type="module" src="./js/app.js"></script>.
+This project strictly adheres to a zero-build-step philosophy.
 
-js/globals.js: Core configurations (points to the Worker API domain), shared utilities (currency parsing and date formatting), and a centralized API wrapper (handling all fetch requests and JSON parsing). No secrets are stored here.
+*   **Frontend:** Vanilla JavaScript (ES Modules), HTML5, CSS3, Tailwind CSS (via CDN), FontAwesome. Hosted on **Cloudflare Pages**.
+*   **Backend:** **Cloudflare Workers** (Edge computing API).
+*   **Database:** **Cloudflare D1** (Serverless SQLite).
 
-js/components.js: Manages dynamic injection of HTML components (Modals, Overlays, View Panels) via JavaScript template literals to keep index.html completely static.
+## ✨ Features
 
-js/router.js: Hash-based client-side router (AppRouter). Manages view toggling.
+*   **🔐 Secure Authentication:** Basic username/password login system.
+*   **⏱️ Batch Session Generator:** Quickly log multiple teaching sessions across different universities and colleges. Automatically calculates total earnings based on a standard hourly rate.
+*   **📊 Payment Ledger:** View and filter teaching records by "Rendered" or "Paid" status. Generate summaries and mark unpaid hours as paid.
+*   **🔗 Resource Manager:** Organize external links into dynamic category tabs. Includes full CRUD functionality with a "soft delete" safety measure to prevent accidental data loss.
+*   **👤 Profile Settings:** Update display name, password, and profile avatar.
 
-js/auth.js: Handles login, session management (localStorage), and UI user data injection.
+## 📁 Project Structure
 
-js/profile.js: Handles user profile updates mapping to the user's UUID and HTML5 Canvas Base64 image compression.
+\`\`\`text
+├── index.html              # Main entry point and layout shell
+├── styles.css              # Custom styles (scrollbar hiding, view transitions)
+├── js/                     # Decoupled ES Modules
+│   ├── app.js              # Application bootstrapper and state manager
+│   ├── auth.js             # Login and session handling
+│   ├── components.js       # UI template injection (modals, views, overlays)
+│   ├── globals.js          # Centralized configuration and API routing
+│   ├── hours-logger.js     # Logic for the Batch Session Generator
+│   ├── payment-ledger.js   # Logic for data tables, filtering, and payment states
+│   ├── profile.js          # Logic for user profile updates
+│   ├── records-viewer.js   # Logic for viewing historical data
+│   ├── resources.js        # Logic for resource link tabs, adding, editing, and deleting
+│   └── router.js           # Vanilla JS SPA navigation router
+└── worker/
+    └── worker.js           # Cloudflare Worker API Controller
+\`\`\`
 
-js/hours-logger.js: Features a Batch Session Generator. Auto-calculates End Time based on Start Time + Hours. Loops through dates (every 7 days) up to an End Date and submits an array of records to the backend.
+## 🚀 Setup & Deployment
 
-js/records-viewer.js: Handles data fetching, flexible date filtering, summary card calculations, the data table, batch-selection (Select All) checkboxes, and executing the batch payment utility (Mark Paid).
+### 1. Database Setup (Cloudflare D1)
 
-js/payment-ledger.js: Controls the Payment History aggregations and summary modal display.
+Create a new D1 database via the Cloudflare Dashboard or Wrangler CLI. You must execute the following SQL schema to create the necessary tables. 
 
-js/resources.js: Controls the automated link aggregator card layout.
+*(Note: The `Resource_Links` table includes the newly added `Is_Deleted` column for soft deletions).*
 
-js/app.js: The master orchestrator that imports and initializes all modules.
+\`\`\`sql
+-- Create Users Table
+CREATE TABLE Users (
+    User_ID TEXT PRIMARY KEY,
+    Username TEXT UNIQUE NOT NULL,
+    Password TEXT NOT NULL,
+    Name TEXT,
+    Avatar TEXT
+);
 
-2. Backend API (Cloudflare Workers: teachapi.plv.workers.dev)
-worker/index.js (or url_api.js): The centralized edge controller. It implements strict CORS headers locked to the frontend domain using environment variables (env.ALLOWED_ORIGIN). It parses payloads (login, update_profile, add_hours_batch, update_payment) and securely executes native SQL queries using the Cloudflare D1 API (env.DB.prepare).
+-- Insert Default User (Update credentials after first login)
+INSERT INTO Users (User_ID, Username, Password, Name, Avatar) 
+VALUES ('user-1', 'admin', 'password123', 'Professor', '');
 
-3. Database Layer (Cloudflare D1 - Serverless SQLite)
-The database uses Universally Unique Identifiers (UUIDs) for all primary keys, generated on the edge via crypto.randomUUID().
+-- Create Teaching Hours Table
+CREATE TABLE Teaching_Hours (
+    Entry_ID TEXT PRIMARY KEY,
+    Date TEXT,
+    Start_Time TEXT,
+    End_Time TEXT,
+    Total_Hours REAL,
+    University TEXT,
+    College TEXT,
+    Subject_Code TEXT,
+    Payment_Status TEXT,
+    Date_Paid TEXT,
+    Total_Earnings REAL
+);
 
-Users: User_ID (UUID), Username, Password, Name, Avatar (Base64).
+-- Create Resource Links Table
+CREATE TABLE Resource_Links (
+    Resource_ID TEXT PRIMARY KEY,
+    Category TEXT,
+    Title TEXT,
+    URL TEXT,
+    Is_Deleted INTEGER DEFAULT 0
+);
+\`\`\`
 
-Teaching_Hours: Entry_ID (UUID), Date, Start_Time, End_Time, Total_Hours, University, College, Subject_Code, Payment_Status, Date_Paid, Total_Earnings.
+### 2. Backend Deployment (Cloudflare Workers)
 
-Resource_Links: Resource_ID (UUID), Category, Title, URL.
+1. Create a new Cloudflare Worker.
+2. Copy the contents of `worker/worker.js` into your worker.
+3. Bind your D1 database to the worker with the variable name `DB`.
+4. Add an Environment Variable named `ALLOWED_ORIGIN` and set it to your frontend URL (e.g., `https://your-frontend.pages.dev`) for strict CORS enforcement.
 
-Development Directives
-When asked to add features, debug, or refactor, you must strictly adhere to the following rules:
+### 3. Frontend Deployment (Cloudflare Pages)
 
-Enforce the Architecture via File Separation: Group logic into its specific domain file inside the js/ directory. Use internal namespace objects (e.g., LoggerManager, RecordsManager).
+1. Update the `CONFIG.API_BASE` in `js/globals.js` to point to your newly deployed Cloudflare Worker URL.
+2. Ensure `js/globals.js` includes all endpoint paths:
+   \`\`\`javascript
+   export const CONFIG = {
+       API_BASE: 'https://your-worker-url.workers.dev',
+       ENDPOINTS: {
+           GET_DATA: '/api/data',
+           ACTION: '/api/action'
+       }
+   };
+   \`\`\`
+3. Deploy the project folder directly to Cloudflare Pages (Direct Upload or via GitHub integration). **Leave the build command blank.**
 
-No Build Step / Native ES Modules: Do not suggest npm packages, Webpack, or JS frameworks (React/Vue). Rely exclusively on native browser Web APIs and ES Modules (import/export).
+## 🛠️ Development Directives
 
-Strict Static Frontend Constraints: The frontend must consist only of .html, .css, and .js files. Dynamic HTML must be injected via components.js.
-
-Database & Security Integrity: All new database records MUST utilize crypto.randomUUID() for primary keys. The backend API must NEVER require an api_secret from the frontend (security is handled via strict CORS origins). D1 batch operations (env.DB.batch) should be used for multiple insertions.
-
-Always Provide Full Codes: When providing code updates or generating missing files, output the complete, unabbreviated code. Never truncate blocks using placeholders like // ... rest of the code here.
-
-Task
-Whenever the user requests an update, refactor, or addition to the Teaching Portal, analyze which specific module/file requires changes, draft the exact logic needed using this separated file architecture, and output the fully updated structural file scripts.
+*   **No Build Tools:** Do not introduce Webpack, Vite, or npm scripts.
+*   **Native ES Modules:** Maintain standard browser imports/exports.
+*   **CORS Enforcement:** The backend must explicitly validate the `ALLOWED_ORIGIN`.
