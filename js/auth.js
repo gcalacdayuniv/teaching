@@ -1,115 +1,145 @@
 // js/auth.js
-import { CONFIG } from './globals.js';
+import { CONFIG, State } from './globals.js';
 
 export const AuthManager = {
-    init() {
+    init: () => {
+        AuthManager.checkSession();
+        
         const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', this.handleLogin.bind(this));
-        }
+        if (loginForm) loginForm.addEventListener('submit', AuthManager.handleLogin);
         
-        // Expose globally for HTML inline buttons (e.g., the Sign Out button in the slide menu)
         const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', this.logout.bind(this));
+        if (logoutBtn) logoutBtn.addEventListener('click', AuthManager.logout);
+    },
+
+    // NEW: Needed by the new router.js
+    isLoggedIn: () => {
+        return !!localStorage.getItem('teachingPortalUser');
+    },
+
+    // NEW: Needed by resources.js and records-viewer.js
+    getToken: () => {
+        const storedUser = localStorage.getItem('teachingPortalUser');
+        if (storedUser) {
+            const user = JSON.parse(storedUser);
+            // If your backend doesn't use standard JWT tokens, returning the User_ID 
+            // or a dummy token string satisfies the fetch header requirements.
+            return user.User_ID || 'authenticated'; 
         }
+        return null;
+    },
+
+    checkSession: () => {
+        const storedUser = localStorage.getItem('teachingPortalUser');
+        const loginScreen = document.getElementById('loginScreen');
+        const appShell = document.getElementById('app-shell');
+
+        if (storedUser) {
+            State.currentUser = JSON.parse(storedUser);
+            if (loginScreen) {
+                loginScreen.classList.add('hidden');
+                loginScreen.classList.remove('flex');
+            }
+            if (appShell) {
+                appShell.classList.remove('hidden');
+                appShell.classList.add('flex');
+            }
+            AuthManager.updateUI();
+        } else {
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+                loginScreen.classList.add('flex');
+            }
+            if (appShell) {
+                appShell.classList.add('hidden');
+                appShell.classList.remove('flex');
+            }
+        }
+    },
+
+    updateUI: () => {
+        if (!State.currentUser) return;
+        const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(State.currentUser.name)}&background=1e3a8a&color=fff`;
+        const avatarUrl = State.currentUser.avatar || fallback;
         
-        this.updateUI();
+        const applyText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+        const applySrc = (id, src) => { const el = document.getElementById(id); if (el) el.src = src; };
+
+        applyText('navUserName', State.currentUser.name);
+        applyText('welcomeName', State.currentUser.name);
+        
+        applySrc('navAvatar', avatarUrl);
+        applySrc('welcomeAvatar', avatarUrl);
+        
+        const profName = document.getElementById('profName');
+        const profPreview = document.getElementById('profAvatarPreview');
+        if (profName) profName.value = State.currentUser.name;
+        if (profPreview) {
+            profPreview.src = avatarUrl;
+            profPreview.classList.remove('hidden');
+        }
     },
-    
-    isLoggedIn() {
-        return !!localStorage.getItem('teaching_token');
-    },
-    
-    getToken() {
-        return localStorage.getItem('teaching_token');
-    },
-    
-    async handleLogin(e) {
+
+    handleLogin: async (e) => {
         e.preventDefault();
-        const user = document.getElementById('loginUser').value;
-        const pass = document.getElementById('loginPass').value;
         const btn = document.getElementById('loginBtn');
         const err = document.getElementById('loginError');
         
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
-        btn.disabled = true;
-        err.classList.add('hidden');
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...'; 
+        if (err) err.classList.add('hidden');
         
         try {
-            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
-                method: 'POST',
+            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION || CONFIG.ENDPOINTS.ACTION}`;
+            const res = await fetch(url, { 
+                method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'login', username: user, password: pass })
+                body: JSON.stringify({ 
+                    action: 'login', 
+                    username: document.getElementById('loginUser').value, 
+                    password: document.getElementById('loginPass').value 
+                }) 
             });
+            const data = await res.json();
             
-            const result = await res.json();
-            
-            if (result.success) {
-                localStorage.setItem('teaching_token', result.token);
-                localStorage.setItem('teaching_user_id', result.user.User_ID);
-                localStorage.setItem('teaching_user_name', result.user.Name);
-                
-                // Store avatar, or empty string if null
-                localStorage.setItem('teaching_user_avatar', result.user.Avatar || '');
+            if (data.status === 'success' || data.success) {
+                localStorage.setItem('teachingPortalUser', JSON.stringify(data.user));
                 
                 const form = document.getElementById('loginForm');
                 if (form) form.reset();
                 
-                this.updateUI();
-                
-                // Trigger route re-check to hide login screen and show app shell
-                window.dispatchEvent(new Event('hashchange'));
+                AuthManager.checkSession();
+                window.dispatchEvent(new Event('hashchange')); // Trigger router update
             } else {
-                err.textContent = result.message || "Invalid credentials.";
+                if (err) {
+                    err.innerText = "Invalid Username or Password"; 
+                    err.classList.remove('hidden');
+                    err.classList.add('block');
+                }
+            }
+        } catch (error) {
+            if (err) {
+                err.innerText = "Connection error. Ensure backend is running."; 
                 err.classList.remove('hidden');
                 err.classList.add('block');
             }
-        } catch (error) {
-            console.error("Login Auth Error:", error);
-            err.textContent = "Connection error. Please check your network.";
-            err.classList.remove('hidden');
-            err.classList.add('block');
         } finally {
-            btn.innerHTML = 'Sign In';
-            btn.disabled = false;
+            btn.disabled = false; 
+            btn.innerText = "Sign In";
         }
     },
-    
-    logout() {
-        localStorage.removeItem('teaching_token');
-        localStorage.removeItem('teaching_user_id');
-        localStorage.removeItem('teaching_user_name');
-        localStorage.removeItem('teaching_user_avatar');
+
+    logout: () => {
+        localStorage.removeItem('teachingPortalUser');
+        State.currentUser = null;
+        
+        const form = document.getElementById('loginForm');
+        if (form) form.reset();
         
         if (typeof window.closeAllMenus === 'function') window.closeAllMenus();
         
-        // Push user back to default view and trigger router to show login screen
-        window.location.hash = '#/records';
+        window.location.hash = '#/records'; // Reset hash
+        AuthManager.checkSession();
         window.dispatchEvent(new Event('hashchange'));
-    },
-    
-    updateUI() {
-        if (!this.isLoggedIn()) return;
-        
-        const name = localStorage.getItem('teaching_user_name') || 'User';
-        const avatar = localStorage.getItem('teaching_user_avatar');
-        
-        // Apply names to HTML elements
-        const nameElements = ['welcomeName', 'menuName', 'navUserName'];
-        nameElements.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = name;
-        });
-        
-        // Default transparent/grey user icon if no avatar base64 exists
-        const fallbackAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>';
-        const avatarSrc = (avatar && avatar.length > 50) ? avatar : fallbackAvatar;
-        
-        const avatarElements = ['welcomeAvatar', 'menuAvatar', 'navAvatar'];
-        avatarElements.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.src = avatarSrc;
-        });
     }
 };
