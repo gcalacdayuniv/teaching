@@ -36,6 +36,32 @@ export function injectComponents() {
                 <div class="overflow-x-auto w-full"><table class="w-full min-w-full text-xs sm:text-sm border"><thead class="bg-gray-50"><tr><th class="p-3 text-left">Date Paid</th><th class="p-3 text-right">Total</th></tr></thead><tbody id="summaryTableBody" class="divide-y"></tbody></table></div>
             </div>
         </div>
+
+        <div id="resourceModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
+                <h2 id="resourceModalTitle" class="text-lg font-bold mb-4 text-gray-800">Add Link</h2>
+                <form id="resourceForm" class="space-y-3">
+                    <input type="hidden" id="resourceId">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Category</label>
+                        <input type="text" id="resourceCategory" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500" list="existingCategories">
+                        <datalist id="existingCategories"></datalist>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Title</label>
+                        <input type="text" id="resourceTitle" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">URL Address</label>
+                        <input type="url" id="resourceUrl" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex justify-end gap-2 mt-5">
+                        <button type="button" id="cancelResourceBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Save Link</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     `;
 
     // 2. Inject Main Views (Panels)
@@ -108,12 +134,18 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="resourcePanel" class="app-view hidden max-w-4xl mx-auto space-y-6 pb-10">
+        <div id="resourcePanel" class="app-view hidden max-w-5xl mx-auto space-y-4 pb-10">
             <div class="flex justify-between items-center border-b pb-4">
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fas fa-link text-blue-600 mr-2"></i>Resource Links</h2>
-                <button id="refreshResourcesBtn" class="text-blue-600 hover:underline text-sm font-semibold"><i class="fas fa-redo mr-1"></i> Refresh</button>
+                <div class="flex gap-2 sm:gap-3">
+                    <button id="addResourceBtn" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-blue-700 transition"><i class="fas fa-plus sm:mr-1"></i> <span class="hidden sm:inline">Add Link</span></button>
+                    <button id="refreshResourcesBtn" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-gray-200 transition"><i class="fas fa-redo"></i></button>
+                </div>
             </div>
-            <div id="resourceGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            
+            <div id="resourceTabs" class="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide border-b border-gray-200"></div>
+            
+            <div id="resourceGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2"></div>
         </div>
 
         <div id="profilePanel" class="app-view hidden max-w-md mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6 pb-10">
