@@ -1,45 +1,103 @@
-// payment-ledger.js
-import { CONFIG, Utils, API } from './globals.js';
+// js/payment-ledger.js
+import { CONFIG } from './globals.js';
+import { AuthManager } from './auth.js';
+import { RecordsManager } from './records-viewer.js';
 
 export const LedgerManager = {
-    init: () => {
-        document.getElementById('openSummaryBtn').addEventListener('click', LedgerManager.showSummary);
-        document.getElementById('closeSummaryBtn').addEventListener('click', () => LedgerManager.closeModal('summaryModal'));
+    init() {
+        this.bindEvents();
     },
-
-    closeModal: (id) => {
-        const el = document.getElementById(id);
-        el.classList.add('hidden'); el.classList.remove('flex');
+    
+    bindEvents() {
+        // Safely bind to avoid "Cannot read properties of null" errors
+        const markBtn = document.getElementById('markPaidBtn');
+        if (markBtn) markBtn.addEventListener('click', this.openPaymentModal.bind(this));
+        
+        const cancelBtn = document.getElementById('cancelPaymentBtn');
+        if (cancelBtn) cancelBtn.addEventListener('click', this.closePaymentModal.bind(this));
+        
+        const confirmBtn = document.getElementById('confirmPaymentBtn');
+        if (confirmBtn) confirmBtn.addEventListener('click', this.processPayment.bind(this));
+        
+        const selectAll = document.getElementById('selectAllRecords');
+        if (selectAll) selectAll.addEventListener('change', this.toggleSelectAll.bind(this));
     },
-
-    showSummary: async () => {
-        const modal = document.getElementById('summaryModal');
-        const tbody = document.getElementById('summaryTableBody');
-        modal.classList.remove('hidden'); modal.classList.add('flex');
-        tbody.innerHTML = '<tr><td colspan="2" class="text-center py-10">Loading...</td></tr>';
+    
+    toggleSelectAll(e) {
+        const isChecked = e.target.checked;
+        document.querySelectorAll('.record-checkbox').forEach(cb => {
+            cb.checked = isChecked;
+        });
+    },
+    
+    openPaymentModal() {
+        const selected = document.querySelectorAll('.record-checkbox:checked');
+        if (selected.length === 0) {
+            alert('Please select at least one unpaid record to mark as paid.');
+            return;
+        }
+        
+        document.getElementById('selectedPaymentDate').value = new Date().toISOString().split('T')[0];
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    },
+    
+    closePaymentModal() {
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+    },
+    
+    async processPayment() {
+        const selected = document.querySelectorAll('.record-checkbox:checked');
+        const entryIds = Array.from(selected).map(cb => cb.dataset.id);
+        const datePaid = document.getElementById('selectedPaymentDate').value;
+        
+        if (entryIds.length === 0 || !datePaid) return;
+        
+        const btn = document.getElementById('confirmPaymentBtn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.disabled = true;
+        
+        const token = AuthManager.getToken();
         
         try {
-            // REFACTORED: Using the centralized API utility
-            const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
+            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    action: 'update_payment',
+                    entry_ids: entryIds,
+                    date_paid: datePaid
+                })
+            });
             
-            const group = data.reduce((acc, r) => {
-                if(r.Payment_Status === 'Paid' && r.Date_Paid) {
-                    const cleanDate = Utils.formatDateYYYYMMDD(r.Date_Paid);
-                    // REFACTORED: Using the clean Utils.parseCurrency
-                    acc[cleanDate] = (acc[cleanDate] || 0) + Utils.parseCurrency(r.Total_Earnings);
+            const result = await res.json();
+            
+            if (result.success) {
+                this.closePaymentModal();
+                
+                // Uncheck select all
+                const selectAll = document.getElementById('selectAllRecords');
+                if (selectAll) selectAll.checked = false;
+                
+                // Trigger a refresh of the records view to show updated data
+                if (typeof RecordsManager !== 'undefined') {
+                    RecordsManager.fetchRecords();
                 }
-                return acc;
-            }, {});
-            
-            const sorted = Object.keys(group).sort((a,b) => new Date(a) - new Date(b));
-            let grandTotal = 0;
-            
-            tbody.innerHTML = sorted.length ? sorted.map(d => {
-                grandTotal += group[d];
-                return `<tr><td class="p-3 border-b">${d}</td><td class="p-3 border-b text-right font-bold">${Utils.formatCurrency(group[d])}</td></tr>`;
-            }).join('') + `<tr class="bg-gray-100 font-bold text-gray-900"><td class="p-3 border-b text-right uppercase text-xs">Grand Total</td><td class="p-3 border-b text-right text-emerald-700">${Utils.formatCurrency(grandTotal)}</td></tr>` : '<tr><td colspan="2" class="p-10 text-center">No history.</td></tr>';
-        } catch(e) {
-             tbody.innerHTML = '<tr><td colspan="2" class="p-10 text-center text-red-500">Error loading.</td></tr>';
+            } else {
+                alert(result.message || 'Error updating payment.');
+            }
+        } catch (error) {
+            alert('Network error while processing payment.');
+        } finally {
+            btn.innerHTML = 'Mark Paid';
+            btn.disabled = false;
         }
     }
 };
