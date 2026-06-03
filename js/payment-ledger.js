@@ -1,6 +1,5 @@
 // js/payment-ledger.js
 import { CONFIG } from './globals.js';
-import { AuthManager } from './auth.js';
 import { RecordsManager } from './records-viewer.js';
 
 export const LedgerManager = {
@@ -9,7 +8,6 @@ export const LedgerManager = {
     },
     
     bindEvents() {
-        // Safely bind to avoid "Cannot read properties of null" errors
         const markBtn = document.getElementById('markPaidBtn');
         if (markBtn) markBtn.addEventListener('click', this.openPaymentModal.bind(this));
         
@@ -19,8 +17,12 @@ export const LedgerManager = {
         const confirmBtn = document.getElementById('confirmPaymentBtn');
         if (confirmBtn) confirmBtn.addEventListener('click', this.processPayment.bind(this));
         
-        const selectAll = document.getElementById('selectAllRecords');
-        if (selectAll) selectAll.addEventListener('change', this.toggleSelectAll.bind(this));
+        // Use event delegation for checkboxes since they are generated dynamically
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'selectAllRecords') {
+                this.toggleSelectAll(e);
+            }
+        });
     },
     
     toggleSelectAll(e) {
@@ -37,7 +39,9 @@ export const LedgerManager = {
             return;
         }
         
-        document.getElementById('selectedPaymentDate').value = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('selectedPaymentDate');
+        if(dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+        
         const modal = document.getElementById('paymentModal');
         if (modal) {
             modal.classList.remove('hidden');
@@ -61,15 +65,15 @@ export const LedgerManager = {
         if (entryIds.length === 0 || !datePaid) return;
         
         const btn = document.getElementById('confirmPaymentBtn');
+        const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         btn.disabled = true;
         
-        const token = AuthManager.getToken();
-        
         try {
-            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.ACTION}`, {
+            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`;
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'update_payment',
                     entry_ids: entryIds,
@@ -79,14 +83,12 @@ export const LedgerManager = {
             
             const result = await res.json();
             
-            if (result.success) {
+            if (result.success || result.status === 'success') {
                 this.closePaymentModal();
                 
-                // Uncheck select all
                 const selectAll = document.getElementById('selectAllRecords');
                 if (selectAll) selectAll.checked = false;
                 
-                // Trigger a refresh of the records view to show updated data
                 if (typeof RecordsManager !== 'undefined') {
                     RecordsManager.fetchRecords();
                 }
@@ -96,7 +98,7 @@ export const LedgerManager = {
         } catch (error) {
             alert('Network error while processing payment.');
         } finally {
-            btn.innerHTML = 'Mark Paid';
+            btn.innerHTML = originalText;
             btn.disabled = false;
         }
     }
