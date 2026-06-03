@@ -1,167 +1,168 @@
 // js/hours-logger.js
-import { CONFIG } from './globals.js';
+import { CONFIG, State } from './globals.js';
 
-export const LoggerManager = {
-    init: () => {
-        document.getElementById('logForm').addEventListener('submit', LoggerManager.submitForm);
-        document.getElementById('addScheduleBtn').addEventListener('click', LoggerManager.addScheduleBlock);
+let scheduleCount = 0;
+
+export function initHoursLogger() {
+    const form = document.getElementById('logForm');
+    const addBtn = document.getElementById('addScheduleBtn');
+    
+    // Clean and rebind the form submit listener
+    if (form) {
+        const newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+        newForm.addEventListener('submit', handleLogSubmit);
+    }
+    
+    // Clean and rebind the add schedule button
+    if (addBtn) {
+        const newAddBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+        newAddBtn.addEventListener('click', addScheduleRow);
+    }
+
+    // Initialize with one schedule row if empty
+    const container = document.getElementById('schedule-container');
+    if (container && container.children.length === 0) {
+        scheduleCount = 0;
+        addScheduleRow();
+    }
+}
+
+function addScheduleRow() {
+    scheduleCount++;
+    const container = document.getElementById('schedule-container');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'schedule-row bg-white p-4 rounded-lg border border-gray-200 shadow-sm relative';
+    row.id = `schedule-${scheduleCount}`;
+    
+    // Add remove button if it's not the first row
+    const removeBtnHTML = scheduleCount > 1 
+        ? `<button type="button" onclick="this.closest('.schedule-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition"><i class="fas fa-times"></i></button>`
+        : '';
+
+    row.innerHTML = `
+        ${removeBtnHTML}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="block text-xs font-semibold text-gray-700">Subject Code</label><input type="text" class="subj-code w-full border p-2 rounded-lg mt-1 outline-none" required></div>
+            <div><label class="block text-xs font-semibold text-gray-700">Start Date</label><input type="date" class="start-date w-full border p-2 rounded-lg mt-1 outline-none" required></div>
+            <div><label class="block text-xs font-semibold text-gray-700">End Date</label><input type="date" class="end-date w-full border p-2 rounded-lg mt-1 outline-none" required></div>
+            <div><label class="block text-xs font-semibold text-gray-700">Start Time</label><input type="time" class="start-time w-full border p-2 rounded-lg mt-1 outline-none" required></div>
+            <div><label class="block text-xs font-semibold text-gray-700">Hours per Session</label><input type="number" step="0.5" class="hours-session w-full border p-2 rounded-lg mt-1 outline-none" required></div>
+        </div>
+    `;
+    container.appendChild(row);
+}
+
+// Utility to add hours to a start time to get the end time
+function calculateEndTime(startTime, hours) {
+    const [h, m] = startTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(h, m, 0);
+    date.setMinutes(date.getMinutes() + (hours * 60));
+    return date.toTimeString().substring(0, 5);
+}
+
+async function handleLogSubmit(e) {
+    e.preventDefault();
+    
+    if (!State.currentUser) return;
+
+    const btn = document.getElementById('logSubmitBtn');
+    const msg = document.getElementById('logStatusMsg');
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true;
+    if (msg) msg.classList.add('hidden');
+
+    const university = document.getElementById('commonUniversity').value;
+    const college = document.getElementById('commonCollege').value;
+
+    const rows = document.querySelectorAll('.schedule-row');
+    const payloadRecords = [];
+    
+    // Batch Generation Logic: Loop through 7-day intervals
+    rows.forEach(row => {
+        const subjectCode = row.querySelector('.subj-code').value;
+        const startDate = new Date(row.querySelector('.start-date').value);
+        const endDate = new Date(row.querySelector('.end-date').value);
+        const startTime = row.querySelector('.start-time').value;
+        const hours = parseFloat(row.querySelector('.hours-session').value);
+        const endTime = calculateEndTime(startTime, hours);
+
+        let currentDate = new Date(startDate);
         
-        // Listen for input changes inside the container to auto-calculate time
-        document.getElementById('schedule-container').addEventListener('input', LoggerManager.handleInputEvent);
-        
-        // Load autocompletes and set initial block
-        LoggerManager.loadAutocomplete();
-        LoggerManager.addScheduleBlock(); // Mounts the first empty schedule block
-    },
+        while (currentDate <= endDate) {
+            payloadRecords.push({
+                Entry_ID: crypto.randomUUID(), // Edge-native UUID generation
+                Date: currentDate.toISOString().split('T')[0],
+                Start_Time: startTime,
+                End_Time: endTime,
+                Total_Hours: hours,
+                University: university,
+                College: college,
+                Subject_Code: subjectCode,
+                Payment_Status: 'Unpaid',
+                Date_Paid: null
+            });
+            // Increment by 7 days for weekly classes
+            currentDate.setDate(currentDate.getDate() + 7);
+        }
+    });
 
-    // --- DOM Injection & Event Delegation ---
-    addScheduleBlock: () => {
-        const container = document.getElementById('schedule-container');
-        const id = Date.now(); // Unique ID for this block
+    if (payloadRecords.length === 0) {
+        if (msg) {
+            msg.textContent = "No valid dates to log.";
+            msg.className = "text-center text-sm mt-3 block font-bold text-red-500";
+        }
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        return;
+    }
 
-        const block = document.createElement('div');
-        block.className = 'schedule-block relative border rounded-lg p-4 bg-white shadow-sm';
-        block.innerHTML = `
-            <button type="button" class="remove-block-btn absolute top-2 right-2 text-red-400 hover:text-red-600 transition p-2">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div><label class="block text-xs font-semibold text-gray-700">Subject Code</label><input type="text" name="subject" list="subList" required class="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-1 focus:ring-blue-500"></div>
-                <div><label class="block text-xs font-semibold text-gray-700">Hours per Session</label><input type="number" name="hours" step="0.5" required class="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-1 focus:ring-blue-500"></div>
-            </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div><label class="block text-xs font-semibold text-gray-700">Start Date</label><input type="date" name="startDate" required class="w-full border p-2 rounded-lg mt-1 outline-none text-xs sm:text-sm"></div>
-                <div><label class="block text-xs font-semibold text-gray-700">End Date</label><input type="date" name="endDate" required class="w-full border p-2 rounded-lg mt-1 outline-none text-xs sm:text-sm"></div>
-                <div><label class="block text-xs font-semibold text-gray-700">Start Time</label><input type="time" name="startTime" required class="w-full border p-2 rounded-lg mt-1 outline-none text-xs sm:text-sm"></div>
-                <div><label class="block text-xs font-semibold text-gray-700">End Time (Auto)</label><input type="time" name="endTime" readonly class="w-full border-none bg-gray-100 p-2 rounded-lg mt-1 outline-none text-xs sm:text-sm font-bold text-gray-500 pointer-events-none"></div>
-            </div>
-        `;
-        container.appendChild(block);
-
-        // Bind delete button
-        block.querySelector('.remove-block-btn').addEventListener('click', () => {
-            if (container.children.length > 1) {
-                block.remove();
-            } else {
-                alert("You must have at least one schedule item.");
-            }
+    try {
+        const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION || CONFIG.ENDPOINTS.ACTION}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'add_hours_batch',
+                user_id: State.currentUser.User_ID,
+                records: payloadRecords
+            })
         });
-    },
-
-    handleInputEvent: (e) => {
-        // If the user changes 'startTime' or 'hours', recalculate the 'endTime' for that specific block
-        if (e.target.name === 'startTime' || e.target.name === 'hours') {
-            const block = e.target.closest('.schedule-block');
-            const startTimeStr = block.querySelector('input[name="startTime"]').value;
-            const hoursVal = block.querySelector('input[name="hours"]').value;
-            const endTimeInput = block.querySelector('input[name="endTime"]');
-
-            if (startTimeStr && hoursVal) {
-                // Time Math
-                const [h, m] = startTimeStr.split(':').map(Number);
-                const totalMinutes = (h * 60) + m + (parseFloat(hoursVal) * 60);
-                const endH = Math.floor(totalMinutes / 60) % 24;
-                const endM = Math.round(totalMinutes % 60);
-                
-                endTimeInput.value = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-            } else {
-                endTimeInput.value = "";
-            }
-        }
-    },
-
-    loadAutocomplete: async () => {
-        try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            
-            document.getElementById('uniList').innerHTML = [...new Set(data.map(d => d.University).filter(Boolean))].map(u => `<option value="${u}">`).join('');
-            document.getElementById('colList').innerHTML = [...new Set(data.map(d => d.College).filter(Boolean))].map(c => `<option value="${c}">`).join('');
-            document.getElementById('subList').innerHTML = [...new Set(data.map(d => d.Subject_Code).filter(Boolean))].map(s => `<option value="${s}">`).join('');
-        } catch(e) {}
-    },
-
-    // --- Submitting & Processing ---
-    submitForm: async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('logSubmitBtn');
-        const msg = document.getElementById('logStatusMsg');
-        btn.disabled = true; msg.textContent = "Processing batch... Please wait."; msg.className = "text-center text-sm text-blue-600 block mt-3 font-bold";
         
-        const commonUniversity = document.getElementById('commonUniversity').value;
-        const commonCollege = document.getElementById('commonCollege').value;
+        const result = await res.json();
 
-        // Collect all blocks and generate records
-        const allGeneratedRecords = [];
-        const blocks = document.querySelectorAll('.schedule-block');
-
-        for (let block of blocks) {
-            const subject = block.querySelector('input[name="subject"]').value;
-            const hours = block.querySelector('input[name="hours"]').value;
-            const startDateStr = block.querySelector('input[name="startDate"]').value;
-            const endDateStr = block.querySelector('input[name="endDate"]').value;
-            const startTime = block.querySelector('input[name="startTime"]').value;
-            const endTime = block.querySelector('input[name="endTime"]').value;
-
-            // Generate dates looping by 7 days
-            let currentDate = new Date(startDateStr);
-            const limitDate = new Date(endDateStr);
-
-            // Safety check
-            if (currentDate > limitDate) {
-                alert(`Error: Start Date for ${subject} is after the End Date.`);
-                btn.disabled = false;
-                msg.classList.add('hidden');
-                return;
+        if (result.success || result.status === 'success') {
+            if (msg) {
+                msg.textContent = `Successfully logged ${payloadRecords.length} sessions!`;
+                msg.className = "text-center text-sm mt-3 block font-bold text-emerald-500";
             }
-
-            while (currentDate <= limitDate) {
-                // Ensure date format YYYY-MM-DD
-                const yyyy = currentDate.getFullYear();
-                const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
-                const dd = String(currentDate.getDate()).padStart(2, '0');
-                
-                allGeneratedRecords.push({
-                    University: commonUniversity,
-                    College: commonCollege,
-                    Subject_Code: subject,
-                    Total_Hours: hours,
-                    Start_Time: startTime,
-                    End_Time: endTime,
-                    Date: `${yyyy}-${mm}-${dd}`
-                });
-
-                // Add 7 days
-                currentDate.setDate(currentDate.getDate() + 7);
-            }
-        }
-
-        const payload = {
-            action: 'add_hours_batch',
-            records: allGeneratedRecords
-        };
-
-        try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`;
-            const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
-            const data = await res.json();
+            e.target.reset();
             
-            if (data.status === 'success') {
-                msg.textContent = `Successfully generated and saved ${data.count} sessions!`; 
-                msg.className = "text-center text-sm text-green-600 block font-bold mt-3";
-                
-                // Reset form completely, then re-mount one empty schedule block
-                document.getElementById('logForm').reset();
-                document.getElementById('schedule-container').innerHTML = '';
-                LoggerManager.addScheduleBlock();
-            } else {
-                throw new Error("Server rejected batch.");
+            // Reset schedule container back to 1 row
+            const container = document.getElementById('schedule-container');
+            if (container) container.innerHTML = '';
+            scheduleCount = 0;
+            addScheduleRow();
+
+        } else {
+            if (msg) {
+                msg.textContent = result.message || 'Failed to log sessions.';
+                msg.className = "text-center text-sm mt-3 block font-bold text-red-500";
             }
-        } catch(e) { 
-            msg.textContent = "Error saving records. Check connection."; 
-            msg.className = "text-center text-sm text-red-600 block font-bold mt-3"; 
         }
+    } catch (error) {
+        if (msg) {
+            msg.textContent = "Network error. Please try again.";
+            msg.className = "text-center text-sm mt-3 block font-bold text-red-500";
+        }
+    } finally {
+        btn.innerHTML = originalText;
         btn.disabled = false;
     }
-};
+}
