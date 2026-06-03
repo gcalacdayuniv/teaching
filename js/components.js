@@ -51,23 +51,10 @@ export function injectComponents() {
                 <h2 id="resourceModalTitle" class="text-lg font-bold mb-4 text-gray-800">Add Link</h2>
                 <form id="resourceForm" class="space-y-3">
                     <input type="hidden" id="resourceId">
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Category</label>
-                        <input type="text" id="resourceCategory" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500" list="existingCategories">
-                        <datalist id="existingCategories"></datalist>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Title</label>
-                        <input type="text" id="resourceTitle" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">URL Address</label>
-                        <input type="url" id="resourceUrl" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="flex justify-end gap-2 mt-5">
-                        <button type="button" onclick="document.getElementById('resourceModal').classList.add('hidden')" id="cancelResourceBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Save Link</button>
-                    </div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Category</label><input type="text" id="resourceCategory" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50" list="existingCategories"><datalist id="existingCategories"></datalist></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Title</label><input type="text" id="resourceTitle" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">URL Address</label><input type="url" id="resourceUrl" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50"></div>
+                    <div class="flex justify-end gap-2 mt-5"><button type="button" onclick="document.getElementById('resourceModal').classList.add('hidden')" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700">Cancel</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700">Save Link</button></div>
                 </form>
             </div>
         </div>
@@ -119,12 +106,10 @@ export function injectComponents() {
             </div>
             
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-2.5 rounded-xl shadow-sm border border-gray-200">
-                
                 <div class="flex bg-gray-100 p-1.5 rounded-lg w-full xl:w-auto overflow-x-auto">
                     <button id="tab-btn-Rendered" class="records-tab-btn active flex-1 min-w-[100px] py-1.5 px-3 text-xs font-bold rounded transition bg-white text-blue-600 shadow-sm" onclick="window.switchRecordsTab('Rendered')">Rendered (All)</button>
                     <button id="tab-btn-Paid" class="records-tab-btn flex-1 min-w-[100px] py-1.5 px-3 text-xs font-bold text-gray-500 rounded transition hover:bg-gray-200" onclick="window.switchRecordsTab('Paid')">Paid Only</button>
                 </div>
-                
                 <div class="flex items-center gap-3 w-full xl:w-auto flex-wrap sm:flex-nowrap">
                     <div class="flex items-center gap-1.5 flex-1 min-w-0 bg-gray-50 border p-1 rounded-lg">
                         <input type="date" id="filterStart" class="flex-1 min-w-0 px-2 py-1 bg-transparent text-xs font-semibold outline-none cursor-pointer text-gray-600" onchange="window.triggerFetchRecords()">
@@ -154,7 +139,6 @@ export function injectComponents() {
 
         <div id="resourcePanel" class="app-view hidden max-w-3xl mx-auto space-y-4 pb-24 pt-2">
             <div id="resourceTabs" class="flex bg-gray-200 p-1 rounded-lg w-full overflow-x-auto whitespace-nowrap shadow-inner max-w-sm mx-auto"></div>
-            
             <div id="resourceList" class="flex flex-col gap-2 pt-2"></div>
         </div>
 
