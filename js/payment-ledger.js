@@ -1,105 +1,42 @@
-// js/payment-ledger.js
-import { CONFIG } from './globals.js';
-import { RecordsManager } from './records-viewer.js';
+import { CONFIG, Utils, API } from './globals.js';
 
 export const LedgerManager = {
-    init() {
-        this.bindEvents();
+    init: () => {
+        document.getElementById('openSummaryBtn').addEventListener('click', LedgerManager.showSummary);
+        document.getElementById('closeSummaryBtn').addEventListener('click', () => LedgerManager.closeModal('summaryModal'));
     },
-    
-    bindEvents() {
-        const markBtn = document.getElementById('markPaidBtn');
-        if (markBtn) markBtn.addEventListener('click', this.openPaymentModal.bind(this));
-        
-        const cancelBtn = document.getElementById('cancelPaymentBtn');
-        if (cancelBtn) cancelBtn.addEventListener('click', this.closePaymentModal.bind(this));
-        
-        const confirmBtn = document.getElementById('confirmPaymentBtn');
-        if (confirmBtn) confirmBtn.addEventListener('click', this.processPayment.bind(this));
-        
-        // Use event delegation for checkboxes since they are generated dynamically
-        document.addEventListener('change', (e) => {
-            if (e.target && e.target.id === 'selectAllRecords') {
-                this.toggleSelectAll(e);
-            }
-        });
+
+    closeModal: (id) => {
+        const el = document.getElementById(id);
+        el.classList.add('hidden'); el.classList.remove('flex');
     },
-    
-    toggleSelectAll(e) {
-        const isChecked = e.target.checked;
-        document.querySelectorAll('.record-checkbox').forEach(cb => {
-            cb.checked = isChecked;
-        });
-    },
-    
-    openPaymentModal() {
-        const selected = document.querySelectorAll('.record-checkbox:checked');
-        if (selected.length === 0) {
-            alert('Please select at least one unpaid record to mark as paid.');
-            return;
-        }
-        
-        const dateInput = document.getElementById('selectedPaymentDate');
-        if(dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-        
-        const modal = document.getElementById('paymentModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-    },
-    
-    closePaymentModal() {
-        const modal = document.getElementById('paymentModal');
-        if (modal) {
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-        }
-    },
-    
-    async processPayment() {
-        const selected = document.querySelectorAll('.record-checkbox:checked');
-        const entryIds = Array.from(selected).map(cb => cb.dataset.id);
-        const datePaid = document.getElementById('selectedPaymentDate').value;
-        
-        if (entryIds.length === 0 || !datePaid) return;
-        
-        const btn = document.getElementById('confirmPaymentBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        btn.disabled = true;
+
+    showSummary: async () => {
+        const modal = document.getElementById('summaryModal');
+        const tbody = document.getElementById('summaryTableBody');
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center py-10">Loading...</td></tr>';
         
         try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`;
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'update_payment',
-                    entry_ids: entryIds,
-                    date_paid: datePaid
-                })
-            });
+            const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
             
-            const result = await res.json();
-            
-            if (result.success || result.status === 'success') {
-                this.closePaymentModal();
-                
-                const selectAll = document.getElementById('selectAllRecords');
-                if (selectAll) selectAll.checked = false;
-                
-                if (typeof RecordsManager !== 'undefined') {
-                    RecordsManager.fetchRecords();
+            const group = data.reduce((acc, r) => {
+                if(r.Payment_Status === 'Paid' && r.Date_Paid) {
+                    const cleanDate = Utils.formatDateYYYYMMDD(r.Date_Paid);
+                    acc[cleanDate] = (acc[cleanDate] || 0) + Utils.parseCurrency(r.Total_Earnings);
                 }
-            } else {
-                alert(result.message || 'Error updating payment.');
-            }
-        } catch (error) {
-            alert('Network error while processing payment.');
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+                return acc;
+            }, {});
+            
+            const sorted = Object.keys(group).sort((a,b) => new Date(a) - new Date(b));
+            let grandTotal = 0;
+            
+            tbody.innerHTML = sorted.length ? sorted.map(d => {
+                grandTotal += group[d];
+                return `<tr><td class="p-3 border-b">${d}</td><td class="p-3 border-b text-right font-bold">${Utils.formatCurrency(group[d])}</td></tr>`;
+            }).join('') + `<tr class="bg-gray-100 font-bold text-gray-900"><td class="p-3 border-b text-right uppercase text-xs">Grand Total</td><td class="p-3 border-b text-right text-emerald-700">${Utils.formatCurrency(grandTotal)}</td></tr>` : '<tr><td colspan="2" class="p-10 text-center">No history.</td></tr>';
+        } catch(e) {
+             tbody.innerHTML = '<tr><td colspan="2" class="p-10 text-center text-red-500">Error loading.</td></tr>';
         }
     }
 };
