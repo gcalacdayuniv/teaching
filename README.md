@@ -7,7 +7,7 @@ The project relies on a highly modular, decoupled stack running entirely on Clou
 1. Frontend (Cloudflare Pages: teaching.plv.workers.dev)
 The client-side is a static Single-Page Application (SPA) using Vanilla JavaScript, TailwindCSS (via CDN), and FontAwesome. JavaScript is strictly modularized into native ES Modules residing inside a js/ directory.
 
-index.html & styles.css: The static layout shell. index.html loads the app via <script type="module" src="./js/app.js"></script>.
+index.html & styles.css: Main entry point, The static layout shell, bottom nav, and FAB. index.html loads the app via <script type="module" src="./js/app.js"></script>.
 
 js/globals.js: Core configurations (points to the Worker API domain), shared utilities (currency parsing and date formatting), and a centralized API wrapper (handling all fetch requests and JSON parsing). No secrets are stored here.
 
