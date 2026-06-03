@@ -1,7 +1,10 @@
+// js/components.js
+
 export function injectComponents() {
     const mainView = document.getElementById('main-view');
     const overlayContainer = document.getElementById('overlay-container');
 
+    // 1. Inject Overlays (Login & Modals)
     overlayContainer.innerHTML = `
         <div id="loginScreen" class="fixed inset-0 bg-blue-900 z-[200] flex flex-col items-center justify-center p-4 hidden">
             <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
@@ -53,7 +56,7 @@ export function injectComponents() {
                         <input type="url" id="resourceUrl" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="flex justify-end gap-2 mt-5">
-                        <button type="button" id="cancelResourceBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
+                        <button type="button" onclick="document.getElementById('resourceModal').classList.add('hidden')" id="cancelResourceBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Save Link</button>
                     </div>
                 </form>
@@ -61,14 +64,15 @@ export function injectComponents() {
         </div>
     `;
 
+    // 2. Inject Main Views (Panels) - Added pb-24 to clear bottom nav
     mainView.innerHTML = `
-        <div id="welcomePanel" class="app-view hidden h-full flex-col items-center justify-center text-gray-400 py-20">
+        <div id="welcomePanel" class="app-view hidden h-full flex-col items-center justify-center text-gray-400 py-20 pb-24">
             <img id="welcomeAvatar" src="" class="w-24 h-24 rounded-full mb-4 shadow-md object-cover border-4 border-white bg-white">
             <h2 class="text-2xl font-bold text-gray-600 mb-2">Welcome back, <span id="welcomeName"></span>!</h2>
             <p class="text-lg text-center">Open the menu to get started.</p>
         </div>
 
-        <div id="logPanel" class="app-view hidden max-w-3xl mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+        <div id="logPanel" class="app-view hidden max-w-3xl mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6 pb-24">
             <div class="flex justify-between items-center mb-6 border-b pb-3">
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fas fa-calendar-plus text-blue-600 mr-2"></i>Batch Session Generator</h2>
             </div>
@@ -81,7 +85,10 @@ export function injectComponents() {
                         <div><label class="block text-xs font-semibold text-gray-700">Department / College</label><input type="text" id="commonCollege" list="colList" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
                     </div>
                 </div>
-                <div id="schedule-container" class="space-y-4"></div>
+
+                <div id="schedule-container" class="space-y-4">
+                    </div>
+
                 <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
                     <button type="button" id="addScheduleBtn" class="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-lg hover:bg-gray-200 transition border"><i class="fas fa-plus mr-2"></i> Add Another Subject</button>
                     <button type="submit" id="logSubmitBtn" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition shadow"><i class="fas fa-save mr-2"></i> Generate & Save All</button>
@@ -90,7 +97,7 @@ export function injectComponents() {
             </form>
         </div>
 
-        <div id="viewPanel" class="app-view hidden max-w-6xl mx-auto flex-col space-y-3 sm:space-y-4 pb-10">
+        <div id="viewPanel" class="app-view hidden max-w-6xl mx-auto flex-col space-y-3 sm:space-y-4 pb-24">
             <div class="grid grid-cols-3 gap-2 sm:gap-4 shrink-0">
                 <div class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-blue-500 flex flex-col justify-center"><p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Rendered</p><p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryHours">0</p></div>
                 <div class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-green-500 flex flex-col justify-center"><p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Total Paid</p><p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryPaid">₱0.00</p></div>
@@ -127,19 +134,21 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="resourcePanel" class="app-view hidden max-w-5xl mx-auto space-y-4 pb-10">
+        <div id="resourcePanel" class="app-view hidden max-w-5xl mx-auto space-y-4 pb-24">
             <div class="flex justify-between items-center border-b pb-4">
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fas fa-link text-blue-600 mr-2"></i>Resource Links</h2>
                 <div class="flex gap-2 sm:gap-3">
-                    <button id="addResourceBtn" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-blue-700 transition"><i class="fas fa-plus sm:mr-1"></i> <span class="hidden sm:inline">Add Link</span></button>
+                    <button id="addResourceBtn" onclick="window.openResourceModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-blue-700 transition"><i class="fas fa-plus sm:mr-1"></i> <span class="hidden sm:inline">Add Link</span></button>
                     <button id="refreshResourcesBtn" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-gray-200 transition"><i class="fas fa-redo"></i></button>
                 </div>
             </div>
+            
             <div id="resourceTabs" class="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide border-b border-gray-200"></div>
+            
             <div id="resourceGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2"></div>
         </div>
 
-        <div id="profilePanel" class="app-view hidden max-w-md mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6 pb-10">
+        <div id="profilePanel" class="app-view hidden max-w-md mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6 pb-24">
             <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 border-b pb-3"><i class="fas fa-user-cog text-gray-500 mr-2"></i>Profile Settings</h2>
             <form id="profileForm" class="space-y-4">
                 <div><label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Display Name</label><input type="text" id="profName" required class="w-full border p-2 rounded-lg outline-none bg-gray-50"></div>
