@@ -1,4 +1,4 @@
-// profile.js
+// js/profile.js
 import { CONFIG, State } from './globals.js';
 import { AuthManager } from './auth.js';
 
@@ -42,9 +42,10 @@ export const ProfileManager = {
         const msg = document.getElementById('profStatus');
         btn.disabled = true; msg.innerText = "Saving changes..."; msg.className = "text-center text-sm text-blue-600 block mt-3";
         
+        // --- UPDATED PAYLOAD: Sends the UUID (State.currentUser.id) to the server ---
         const payload = { 
             action: 'update_profile', 
-            username: State.currentUser.username, 
+            id: State.currentUser.id,             // <--- Changed from username
             name: document.getElementById('profName').value, 
             newPassword: document.getElementById('profPass').value, 
             avatar: ProfileManager.pendingAvatar 
@@ -60,7 +61,7 @@ export const ProfileManager = {
                 if (data.newAvatar) State.currentUser.avatar = data.newAvatar;
                 localStorage.setItem('teachingPortalUser', JSON.stringify(State.currentUser));
                 
-                AuthManager.updateUI(); // Refreshes avatars everywhere
+                AuthManager.updateUI(); 
                 document.getElementById('profPass').value = ''; 
                 document.getElementById('profAvatarInput').value = ''; 
                 ProfileManager.pendingAvatar = '';
