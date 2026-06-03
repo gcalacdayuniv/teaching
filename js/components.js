@@ -86,12 +86,23 @@ export function injectComponents() {
                 </div>
                 <div class="grid grid-cols-2 gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                     <button id="openSummaryBtn" class="w-full bg-emerald-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-list-alt mr-1"></i> Summary</button>
-                    <button id="openPaymentPromptBtn" class="w-full bg-indigo-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-check mr-1"></i> Mark Paid</button>
+                    <button id="markPaidBtn" class="w-full bg-indigo-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-check mr-1"></i> Mark Paid</button>
                 </div>
             </div>
             <div class="bg-white border rounded-xl shadow-sm w-full overflow-x-auto">
                 <table class="min-w-full text-left text-sm whitespace-nowrap">
-                    <thead class="bg-gray-50 border-b uppercase text-[10px] sm:text-xs font-bold text-gray-500"><tr><th class="px-4 py-3 w-10 text-center">✔</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Location</th><th class="px-4 py-3">Subject</th><th class="px-4 py-3">Hrs</th><th class="px-4 py-3">Earnings</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Paid</th></tr></thead>
+                    <thead class="bg-gray-50 border-b uppercase text-[10px] sm:text-xs font-bold text-gray-500">
+                        <tr>
+                            <th class="px-4 py-3 w-10 text-center"><input type="checkbox" id="selectAllRecords" class="w-4 h-4 rounded text-blue-600"></th>
+                            <th class="px-4 py-3">Date</th>
+                            <th class="px-4 py-3">Location</th>
+                            <th class="px-4 py-3">Subject</th>
+                            <th class="px-4 py-3">Hrs</th>
+                            <th class="px-4 py-3">Earnings</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Paid</th>
+                        </tr>
+                    </thead>
                     <tbody id="dataTableBody" class="divide-y divide-gray-100 text-xs sm:text-sm"><tr><td colspan="8" class="py-10 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
                 </table>
             </div>
