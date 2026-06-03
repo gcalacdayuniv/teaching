@@ -1,116 +1,183 @@
-import { CONFIG, Utils, API } from './globals.js';
+import { CONFIG, State } from './globals.js';
 
-export const RecordsManager = {
-    init: () => {
-        const fetchBtn = document.getElementById('fetchRecordsBtn');
-        if (fetchBtn) fetchBtn.addEventListener('click', RecordsManager.fetchData);
+let allRecords = [];
+let currentFilterTab = 'Rendered'; // 'Rendered' or 'Paid'
 
-        const selectAll = document.getElementById('selectAllRecords');
-        if (selectAll) {
-            selectAll.addEventListener('change', (e) => {
-                document.querySelectorAll('.record-checkbox').forEach(cb => {
-                    cb.checked = e.target.checked;
-                });
-            });
-        }
+export function initRecords() {
+    setDefaultDates();
 
-        const markPaidBtn = document.getElementById('markPaidBtn');
-        if (markPaidBtn) {
-            markPaidBtn.addEventListener('click', RecordsManager.markAsPaid);
-        }
-    },
+    // Auto-fetch on date change
+    const filterStart = document.getElementById('filterStart');
+    const filterEnd = document.getElementById('filterEnd');
+    if (filterStart) filterStart.addEventListener('change', fetchRecords);
+    if (filterEnd) filterEnd.addEventListener('change', fetchRecords);
 
-    fetchData: async () => {
-        const start = document.getElementById('filterStart').value; 
-        const end = document.getElementById('filterEnd').value; 
-        const type = document.getElementById('filterType').value; 
-        const tbody = document.getElementById('dataTableBody');
-        
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>';
-        
-        try {
-            const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
-            
-            let h = 0, p = 0, u = 0;
-            const filtered = data.filter(r => {
-                const d = type === 'Paid' ? r.Date_Paid : r.Date;
-                
-                let match = true;
-                if (start && d < start) match = false;
-                if (end && d > end) match = false;
-
-                if(match) {
-                    h += parseFloat(r.Total_Hours || 0);
-                    const earn = Utils.parseCurrency(r.Total_Earnings);
-                    if(r.Payment_Status === 'Paid') p += earn; else u += earn;
-                }
-                return match;
-            });
-
-            document.getElementById('summaryHours').innerText = h;
-            document.getElementById('summaryPaid').innerText = Utils.formatCurrency(p);
-            document.getElementById('summaryUnpaid').innerText = Utils.formatCurrency(u);
-            
-            const selectAll = document.getElementById('selectAllRecords');
-            if (selectAll) selectAll.checked = false;
-
-            tbody.innerHTML = filtered.length ? filtered.map(r => `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 text-center">${r.Payment_Status !== 'Paid' ? `<input type="checkbox" value="${r.Entry_ID}" class="record-checkbox w-4 h-4 rounded text-blue-600">` : ''}</td>
-                    <td class="px-4 py-3 font-bold">${Utils.formatDateYYYYMMDD(r.Date)}</td>
-                    <td class="px-4 py-3 text-[11px] sm:text-xs">${r.University}<br><span class="text-gray-400 font-normal">${r.College}</span></td>
-                    <td class="px-4 py-3 text-[11px] sm:text-xs">${r.Subject_Code}</td>
-                    <td class="px-4 py-3 font-bold">${r.Total_Hours}</td>
-                    <td class="px-4 py-3">${Utils.formatCurrency(Utils.parseCurrency(r.Total_Earnings))}</td>
-                    <td class="px-4 py-3"><span class="px-2 py-1 rounded text-[10px] font-bold ${r.Payment_Status==='Paid'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}">${r.Payment_Status}</span></td>
-                    <td class="px-4 py-3 text-[10px] text-gray-400 font-normal">${r.Date_Paid ? Utils.formatDateYYYYMMDD(r.Date_Paid) : '-'}</td>
-                </tr>
-            `).join('') : '<tr><td colspan="8" class="text-center py-10 text-gray-400">No records found.</td></tr>';
-        } catch(e) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-red-500 font-bold">Failed to load data.</td></tr>';
-        }
-    },
-
-    markAsPaid: async () => {
-        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
-        
-        if (checkedBoxes.length === 0) {
-            return alert("Select at least one record to mark as paid.");
-        }
-
-        const datePaid = prompt("Enter payment date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (!datePaid) return; 
-
-        const entryIds = Array.from(checkedBoxes).map(cb => cb.value);
-        const btn = document.getElementById('markPaidBtn');
-        const originalBtnHTML = btn ? btn.innerHTML : '';
-
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-            btn.disabled = true;
-        }
-
-        try {
-            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
-                action: 'update_payment',
-                entryIds: entryIds,
-                datePaid: datePaid
-            });
-            
-            if (data.status === 'success') {
-                alert(`Successfully marked ${entryIds.length} records as paid.`);
-                RecordsManager.fetchData(); 
-            } else {
-                alert("Failed to update records: " + (data.message || 'Unknown error'));
-            }
-        } catch (error) {
-            alert("An error occurred while updating the records.");
-            console.error("Payment Update Error:", error);
-        } finally {
-            if (btn) {
-                btn.innerHTML = originalBtnHTML; 
-                btn.disabled = false;
-            }
-        }
+    // Dashboard Tabs Binding
+    const tabRendered = document.getElementById('tab-btn-Rendered');
+    const tabPaid = document.getElementById('tab-btn-Paid');
+    
+    if (tabRendered) {
+        tabRendered.addEventListener('click', () => {
+            currentFilterTab = 'Rendered';
+            updateTabStyles();
+            fetchRecords();
+        });
     }
-};
+    if (tabPaid) {
+        tabPaid.addEventListener('click', () => {
+            currentFilterTab = 'Paid';
+            updateTabStyles();
+            fetchRecords();
+        });
+    }
+
+    // Summary Modal Triggers (Cards)
+    document.getElementById('card-rendered')?.addEventListener('click', () => openSummaryModal('Rendered'));
+    document.getElementById('card-paid')?.addEventListener('click', () => openSummaryModal('Paid'));
+    document.getElementById('card-unpaid')?.addEventListener('click', () => openSummaryModal('Unpaid'));
+}
+
+function updateTabStyles() {
+    const tabRendered = document.getElementById('tab-btn-Rendered');
+    const tabPaid = document.getElementById('tab-btn-Paid');
+    const activeClass = "flex-1 min-w-[100px] py-1.5 px-3 text-xs font-bold rounded transition bg-white text-blue-600 shadow-sm";
+    const inactiveClass = "flex-1 min-w-[100px] py-1.5 px-3 text-xs font-bold text-gray-500 rounded transition hover:bg-gray-200";
+
+    if (tabRendered) tabRendered.className = currentFilterTab === 'Rendered' ? activeClass : inactiveClass;
+    if (tabPaid) tabPaid.className = currentFilterTab === 'Paid' ? activeClass : inactiveClass;
+}
+
+function setDefaultDates() {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    document.getElementById('filterStart').value = start.toISOString().split('T')[0];
+    document.getElementById('filterEnd').value = end.toISOString().split('T')[0];
+}
+
+export async function fetchRecords() {
+    if (!State.currentUser) return;
+
+    const start = document.getElementById('filterStart').value;
+    const end = document.getElementById('filterEnd').value;
+    const tbody = document.getElementById('dataTableBody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="py-10 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>`;
+
+    try {
+        let condition = `Date >= '${start}' AND Date <= '${end}'`;
+        if (currentFilterTab === 'Paid') {
+            condition += ` AND Payment_Status = 'Paid'`;
+        }
+
+        const queryUrl = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}?table=Teaching_Hours&condition=${encodeURIComponent(condition)}&orderBy=Date ASC`;
+        const response = await fetch(queryUrl);
+        const result = await response.json();
+
+        if (result.success || result.status === 'success') {
+            allRecords = result.data || result.records || [];
+            renderRecords(allRecords);
+            updateSummaryCards(allRecords);
+        } else {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-red-500 font-bold">${result.message || 'Data error'}</td></tr>`;
+        }
+    } catch (error) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-red-500 font-bold">Network Error</td></tr>`;
+    }
+}
+
+function renderRecords(data) {
+    const tbody = document.getElementById('dataTableBody');
+    if (!tbody) return;
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-10 text-center text-gray-400 font-bold">No records found for this selection.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(row => {
+        const dateStr = new Date(row.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const isPaid = row.Payment_Status === 'Paid';
+        const statusClass = isPaid ? 'text-green-500' : 'text-amber-500';
+        const earnings = Number(row.Total_Earnings).toLocaleString(undefined, {minimumFractionDigits: 2});
+
+        return `
+        <tr class="hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
+            <td class="px-4 py-3 text-center w-10">
+                ${!isPaid ? `<input type="checkbox" class="record-checkbox w-4 h-4 rounded text-blue-600 cursor-pointer" data-id="${row.Entry_ID}">` : ''}
+            </td>
+            <td class="px-4 py-3">
+                <div class="font-semibold text-gray-800">${dateStr}</div>
+                <div class="text-[10px] text-gray-400">${row.Start_Time} - ${row.End_Time}</div>
+            </td>
+            <td class="px-4 py-3 font-semibold text-gray-700">${row.Subject_Code}</td>
+            <td class="px-4 py-3 text-right">
+                <div class="font-black text-gray-900">₱${earnings}</div>
+                <div class="text-[9px] font-bold uppercase tracking-widest ${statusClass} mt-0.5">${row.Payment_Status}</div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function updateSummaryCards(data) {
+    let renderedHrs = 0, totalPaid = 0, totalUnpaid = 0;
+
+    data.forEach(row => {
+        renderedHrs += Number(row.Total_Hours);
+        const amt = Number(row.Total_Earnings);
+        if (row.Payment_Status === 'Paid') totalPaid += amt;
+        else totalUnpaid += amt;
+    });
+
+    const hrsEl = document.getElementById('summaryHours');
+    const paidEl = document.getElementById('summaryPaid');
+    const unpaidEl = document.getElementById('summaryUnpaid');
+    
+    if (hrsEl) hrsEl.innerText = renderedHrs.toFixed(1);
+    if (paidEl) paidEl.innerText = '₱' + totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2});
+    if (unpaidEl) unpaidEl.innerText = '₱' + totalUnpaid.toLocaleString(undefined, {minimumFractionDigits: 2});
+}
+
+function openSummaryModal(cardType) {
+    const modal = document.getElementById('summaryModal');
+    const titleEl = document.getElementById('summaryModalTitle');
+    const tbody = document.getElementById('summaryTableBody');
+    if (!modal || !titleEl || !tbody) return;
+    
+    let filtered = allRecords;
+    
+    if (cardType === 'Paid') {
+        filtered = filtered.filter(r => r.Payment_Status === 'Paid');
+        titleEl.textContent = "Paid Records";
+    } else if (cardType === 'Unpaid') {
+        filtered = filtered.filter(r => r.Payment_Status !== 'Paid');
+        titleEl.textContent = "Unpaid Records";
+    } else {
+        titleEl.textContent = "All Rendered Records";
+    }
+    
+    tbody.innerHTML = filtered.map(r => {
+        const dateStr = new Date(r.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const earnings = Number(r.Total_Earnings).toLocaleString(undefined,{minimumFractionDigits:2});
+        const statusClass = r.Payment_Status === 'Paid' ? 'text-green-500' : 'text-amber-500';
+        
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="p-3">
+                    <div class="font-bold text-gray-800">${dateStr}</div>
+                    <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${r.Subject_Code}</div>
+                </td>
+                <td class="p-3 text-right">
+                    <div class="font-black text-gray-900">₱${earnings}</div>
+                    <div class="text-[9px] font-bold uppercase tracking-widest ${statusClass} mt-0.5">${r.Payment_Status}</div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-gray-400 font-bold">No records found.</td></tr>`;
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
