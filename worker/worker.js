@@ -22,7 +22,8 @@ export default {
         let results;
 
         if (path === 'resources') {
-          const { results: res } = await env.DB.prepare("SELECT * FROM Resource_Links ORDER BY Category, Title").all();
+          // Fetch resources, excluding soft-deleted items
+          const { results: res } = await env.DB.prepare("SELECT * FROM Resource_Links WHERE Is_Deleted IS NULL OR Is_Deleted = 0 ORDER BY Category, Title").all();
           results = res;
         } else {
           const { results: res } = await env.DB.prepare("SELECT * FROM Teaching_Hours ORDER BY Date DESC").all();
@@ -100,6 +101,28 @@ export default {
           
           await env.DB.prepare(query).bind(body.datePaid, ...body.entryIds).run();
           
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        // --- ACTION: ADD RESOURCE ---
+        if (body.action === 'add_resource') {
+          const resourceId = crypto.randomUUID();
+          await env.DB.prepare("INSERT INTO Resource_Links (Resource_ID, Category, Title, URL, Is_Deleted) VALUES (?, ?, ?, ?, 0)")
+            .bind(resourceId, body.category, body.title, body.url).run();
+          return new Response(JSON.stringify({ status: "success", resourceId }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        // --- ACTION: EDIT RESOURCE ---
+        if (body.action === 'edit_resource') {
+          await env.DB.prepare("UPDATE Resource_Links SET Category = ?, Title = ?, URL = ? WHERE Resource_ID = ?")
+            .bind(body.category, body.title, body.url, body.resourceId).run();
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        // --- ACTION: DELETE RESOURCE (SOFT DELETE) ---
+        if (body.action === 'delete_resource') {
+          await env.DB.prepare("UPDATE Resource_Links SET Is_Deleted = 1 WHERE Resource_ID = ?")
+            .bind(body.resourceId).run();
           return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
