@@ -12,21 +12,9 @@ export const AuthManager = {
         if (logoutBtn) logoutBtn.addEventListener('click', AuthManager.logout);
     },
 
-    // NEW: Needed by the new router.js
+    // Used by router.js to guard views
     isLoggedIn: () => {
         return !!localStorage.getItem('teachingPortalUser');
-    },
-
-    // NEW: Needed by resources.js and records-viewer.js
-    getToken: () => {
-        const storedUser = localStorage.getItem('teachingPortalUser');
-        if (storedUser) {
-            const user = JSON.parse(storedUser);
-            // If your backend doesn't use standard JWT tokens, returning the User_ID 
-            // or a dummy token string satisfies the fetch header requirements.
-            return user.User_ID || 'authenticated'; 
-        }
-        return null;
     },
 
     checkSession: () => {
@@ -67,7 +55,6 @@ export const AuthManager = {
 
         applyText('navUserName', State.currentUser.name);
         applyText('welcomeName', State.currentUser.name);
-        
         applySrc('navAvatar', avatarUrl);
         applySrc('welcomeAvatar', avatarUrl);
         
@@ -90,7 +77,9 @@ export const AuthManager = {
         if (err) err.classList.add('hidden');
         
         try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION || CONFIG.ENDPOINTS.ACTION}`;
+            // Fix applied: explicitly use POST_ACTION as defined in globals.js
+            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`;
+            
             const res = await fetch(url, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -109,7 +98,7 @@ export const AuthManager = {
                 if (form) form.reset();
                 
                 AuthManager.checkSession();
-                window.dispatchEvent(new Event('hashchange')); // Trigger router update
+                window.dispatchEvent(new Event('hashchange')); // Inform router
             } else {
                 if (err) {
                     err.innerText = "Invalid Username or Password"; 
@@ -138,7 +127,7 @@ export const AuthManager = {
         
         if (typeof window.closeAllMenus === 'function') window.closeAllMenus();
         
-        window.location.hash = '#/records'; // Reset hash
+        window.location.hash = '#/records'; 
         AuthManager.checkSession();
         window.dispatchEvent(new Event('hashchange'));
     }
