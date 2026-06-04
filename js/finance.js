@@ -193,17 +193,8 @@ export const FinanceManager = {
             </div>
             
             <div class="grid grid-cols-2 gap-3">
-                <select id="finGroup_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" required>
-                    <option value="Personal">Personal</option>
-                    <option value="Home">Home</option>
-                </select>
-                <select id="finSubGroup_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" required>
-                    <option value="Food">Food</option>
-                    <option value="Things">Things</option>
-                    <option value="Travel">Travel</option>
-                    <option value="Medicine">Medicine</option>
-                    <option value="Others">Others</option>
-                </select>
+                <select id="finGroup_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" required></select>
+                <select id="finSubGroup_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" required></select>
             </div>
             
             <input type="text" id="finDesc_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Description" required>
@@ -220,16 +211,31 @@ export const FinanceManager = {
     updateGroups: (idx) => {
         const type = document.getElementById(`finType_${idx}`).value;
         const groupSel = document.getElementById(`finGroup_${idx}`);
+        const subGroupSel = document.getElementById(`finSubGroup_${idx}`);
         
         if (type === 'Expense') {
             groupSel.innerHTML = `
                 <option value="Personal">Personal</option>
                 <option value="Home">Home</option>
             `;
+            subGroupSel.innerHTML = `
+                <option value="Food">Food</option>
+                <option value="Things">Things</option>
+                <option value="Travel">Travel</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Others">Others</option>
+            `;
         } else {
             groupSel.innerHTML = `
                 <option value="Earnings">Earnings</option>
                 <option value="Other">Other</option>
+            `;
+            subGroupSel.innerHTML = `
+                <option value="Teaching">Teaching</option>
+                <option value="Freelance">Freelance</option>
+                <option value="Business">Business</option>
+                <option value="Allowance">Allowance</option>
+                <option value="Others">Others</option>
             `;
         }
     },
