@@ -82,11 +82,6 @@ function setupUI() {
             fabMenu.classList.remove('flex');
             if (fabIcon) fabIcon.style.transform = 'rotate(0deg)';
         }
-        
-        // Make sure all profile modals close when navigating away or closing menus
-        if (window.closeProfileModals) {
-            window.closeProfileModals();
-        }
     };
 
     window.openResourceModal = function() {
@@ -113,7 +108,12 @@ function setupUI() {
             }
         });
         
-        // Ensure FAB and modals close when navigating
+        // Ensure FAB and menus close when navigating
         window.closeAllMenus();
+        
+        // Only close profile modals strictly on hashchange (navigation), not when closing side menus
+        if (window.closeProfileModals) {
+            window.closeProfileModals();
+        }
     });
 }
