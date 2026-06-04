@@ -149,18 +149,11 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="resourcePanel" class="app-view hidden max-w-5xl mx-auto space-y-4 pb-24">
-            <div class="flex justify-between items-center border-b pb-4">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fas fa-link text-blue-600 mr-2"></i>Resource Links</h2>
-                <div class="flex gap-2 sm:gap-3">
-                    <button id="addResourceBtn" onclick="window.openResourceModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-blue-700 transition"><i class="fas fa-plus sm:mr-1"></i> <span class="hidden sm:inline">Add Link</span></button>
-                    <button id="refreshResourcesBtn" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-gray-200 transition"><i class="fas fa-redo"></i></button>
-                </div>
+        <div id="resourcePanel" class="app-view hidden max-w-5xl mx-auto space-y-3 pb-24">
+            <div class="bg-white p-3 rounded-xl border flex flex-col shadow-sm">
+                <div id="resourceTabs" class="flex gap-4 border-b overflow-x-auto scrollbar-hide"></div>
             </div>
-            
-            <div id="resourceTabs" class="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide border-b border-gray-200"></div>
-            
-            <div id="resourceGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2"></div>
+            <div id="resourceGrid" class="flex flex-col gap-2"></div>
         </div>
 
         <div id="profilePanel" class="app-view hidden max-w-md mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6 pb-24">
