@@ -4,7 +4,7 @@ export function injectComponents() {
     const mainView = document.getElementById('main-view');
     const overlayContainer = document.getElementById('overlay-container');
 
-    // 1. Inject Overlays (Login & Modals)
+    // 1. Inject Overlays (Login & Modals) - Updated z-index to z-[300] to always be in front
     overlayContainer.innerHTML = `
         <div id="loginScreen" class="fixed inset-0 bg-blue-900 z-[200] flex flex-col items-center justify-center p-4 hidden">
             <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
@@ -22,7 +22,7 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="paymentModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+        <div id="paymentModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
                 <h2 class="text-lg font-bold mb-4">Confirm Payment</h2>
                 <input type="date" id="selectedPaymentDate" class="w-full border p-2.5 rounded-lg mb-4 outline-none text-sm">
@@ -30,14 +30,14 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="summaryModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+        <div id="summaryModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[80vh]">
                 <div class="flex justify-between items-center mb-4 border-b pb-2"><h2 id="summaryModalTitle" class="font-bold text-lg sm:text-xl">Details</h2><button id="closeSummaryBtn" class="text-gray-400 text-xl hover:text-gray-600 transition"><i class="fas fa-times"></i></button></div>
                 <div class="overflow-y-auto w-full flex-1"><table class="w-full min-w-full text-xs sm:text-sm border"><thead class="bg-gray-50 sticky top-0"><tr><th id="summaryCol1" class="p-3 text-left">Date</th><th id="summaryCol2" class="p-3 text-right">Value</th></tr></thead><tbody id="summaryTableBody" class="divide-y"></tbody></table></div>
             </div>
         </div>
 
-        <div id="resourceModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+        <div id="resourceModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
                 <h2 id="resourceModalTitle" class="text-lg font-bold mb-4 text-gray-800">Add Link</h2>
                 <form id="resourceForm" class="space-y-3">
@@ -63,7 +63,7 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="detailsModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+        <div id="detailsModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
                 <h2 class="text-lg font-bold mb-4 text-gray-800"><i class="fas fa-id-card text-blue-600 mr-2"></i>Update Details</h2>
                 <form id="detailsForm" class="space-y-3">
@@ -79,7 +79,7 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="avatarModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+        <div id="avatarModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl flex flex-col items-center">
                 <h2 class="text-lg font-bold mb-4 text-gray-800 w-full text-left"><i class="fas fa-camera text-blue-600 mr-2"></i>Profile Picture</h2>
                 <form id="avatarForm" class="space-y-4 w-full flex flex-col items-center">
@@ -104,7 +104,7 @@ export function injectComponents() {
             </div>
         </div>
 
-        <div id="passwordModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+        <div id="passwordModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
                 <h2 class="text-lg font-bold mb-4 text-gray-800"><i class="fas fa-key text-blue-600 mr-2"></i>Change Password</h2>
                 <form id="passwordForm" class="space-y-3">
