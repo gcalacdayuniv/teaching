@@ -38,7 +38,7 @@ export const FinanceManager = {
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to 70% JPEG
+                    resolve(canvas.toDataURL('image/jpeg', 0.7)); 
                 };
                 img.onerror = (e) => reject(e);
             };
@@ -52,39 +52,39 @@ export const FinanceManager = {
         const financeHtml = `
         <div id="financePanel" class="app-view hidden flex-col w-full h-full max-w-4xl mx-auto space-y-4 pb-24">
             
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 shrink-0">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Financial Overview</h2>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 shrink-0">
+                <h2 class="text-sm font-bold text-gray-800 mb-2">Financial Overview</h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-green-50 p-2 rounded-xl border border-green-100 text-center">
+                        <p class="text-[9px] text-green-600 font-bold uppercase tracking-wider">Total Income</p>
+                        <p class="text-sm sm:text-base font-black text-green-700 mt-0.5 truncate" id="finTotalIncome">₱0.00</p>
+                    </div>
+                    <div class="bg-red-50 p-2 rounded-xl border border-red-100 text-center">
+                        <p class="text-[9px] text-red-600 font-bold uppercase tracking-wider">Total Expense</p>
+                        <p class="text-sm sm:text-base font-black text-red-700 mt-0.5 truncate" id="finTotalExpense">₱0.00</p>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded-xl border border-gray-200 text-center">
+                        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Net Balance</p>
+                        <p class="text-sm sm:text-base font-black text-gray-800 mt-0.5 truncate" id="finNetBalance">₱0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col">
+                <div class="flex justify-between items-center mb-3 ml-1 shrink-0">
+                    <h3 class="font-bold text-gray-700">Ledgers & Categories</h3>
                     <div class="flex gap-2">
-                        <button onclick="FinanceManager.openNewProjectModal()" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-blue-200">
-                            <i class="fas fa-folder-plus"></i> New Project
+                        <button onclick="FinanceManager.openNewProjectModal()" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-indigo-200 shadow-sm">
+                            <i class="fas fa-folder-plus"></i> <span class="hidden sm:inline">New Project</span>
                         </button>
                         <button onclick="FinanceManager.openRecordForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
-                            <i class="fas fa-plus"></i> Log Transaction
+                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Log Txn</span>
                         </button>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4 mt-2">
-                    <div class="bg-green-50 p-4 rounded-xl border border-green-100 text-center">
-                        <p class="text-xs text-green-600 font-bold uppercase tracking-wide">Total Income</p>
-                        <p class="text-2xl font-black text-green-700 mt-1" id="finTotalIncome">₱0.00</p>
+                <div id="financeGroupsContainer" class="space-y-3 pb-4">
                     </div>
-                    <div class="bg-red-50 p-4 rounded-xl border border-red-100 text-center">
-                        <p class="text-xs text-red-600 font-bold uppercase tracking-wide">Total Expense</p>
-                        <p class="text-2xl font-black text-red-700 mt-1" id="finTotalExpense">₱0.00</p>
-                    </div>
-                </div>
-                <div class="mt-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
-                    <p class="text-xs text-gray-500 font-bold uppercase tracking-wide">Net Balance</p>
-                    <p class="text-3xl font-black text-gray-800 mt-1" id="finNetBalance">₱0.00</p>
-                </div>
-            </div>
-
-            <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                <h3 class="font-bold text-gray-700 mb-3 ml-1">Ledgers & Categories</h3>
-                <div id="financeGroupsContainer" class="space-y-3">
-                </div>
             </div>
         </div>
 
@@ -175,12 +175,14 @@ export const FinanceManager = {
         const groups = {}; 
         const lists = { MainGroup: new Set(), SubGroup1: new Set(), SubGroup2: new Set(), SubGroup3: new Set(), SubGroup4: new Set(), SubGroup5: new Set() };
         
+        // 1. Initialize Project Groups with nested subGroups
         projects.forEach(p => {
             groups[`proj_${p.Project_ID}`] = {
-                title: p.Name, type: 'project', id: p.Project_ID, income: 0, expense: 0, records: []
+                title: p.Name, type: 'project', id: p.Project_ID, income: 0, expense: 0, subGroups: {}
             };
         });
 
+        // 2. Map Teaching Hours to Earnings -> Teaching Sub-group
         const groupedTeaching = {};
         teachingHours.forEach(th => {
             const date = th.Date_Paid || th.Date;
@@ -195,17 +197,22 @@ export const FinanceManager = {
         });
 
         if (Object.keys(groupedTeaching).length > 0 && !groups['group_Earnings']) {
-            groups['group_Earnings'] = { title: 'Earnings', type: 'group', id: 'Earnings', income: 0, expense: 0, records: [] };
+            groups['group_Earnings'] = { title: 'Earnings', type: 'group', id: 'Earnings', income: 0, expense: 0, subGroups: {} };
         }
 
         Object.values(groupedTeaching).forEach(gt => {
-            groups['group_Earnings'].records.push(gt);
+            if (!groups['group_Earnings'].subGroups['Teaching']) {
+                groups['group_Earnings'].subGroups['Teaching'] = { income: 0, expense: 0, records: [] };
+            }
+            groups['group_Earnings'].subGroups['Teaching'].records.push(gt);
+            groups['group_Earnings'].subGroups['Teaching'].income += gt.amount;
             groups['group_Earnings'].income += gt.amount;
             globalIncome += gt.amount;
             lists.MainGroup.add('Earnings');
             lists.SubGroup1.add('Teaching');
         });
 
+        // 3. Process Standard Transactions into Sub-groups
         transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
             const r = {
@@ -230,15 +237,26 @@ export const FinanceManager = {
                 groups[groupKey] = {
                     title: t.Project_ID ? 'Unknown Project' : t.Main_Group,
                     type: t.Project_ID ? 'project' : 'group', id: t.Project_ID || t.Main_Group,
-                    income: 0, expense: 0, records: []
+                    income: 0, expense: 0, subGroups: {}
                 };
             }
 
-            groups[groupKey].records.push(r);
-            if (t.Type === 'Income') groups[groupKey].income += amt;
-            else groups[groupKey].expense += amt;
+            const subKey = r.subGroup1 || 'General';
+            if (!groups[groupKey].subGroups[subKey]) {
+                groups[groupKey].subGroups[subKey] = { income: 0, expense: 0, records: [] };
+            }
+
+            groups[groupKey].subGroups[subKey].records.push(r);
+            if (t.Type === 'Income') {
+                groups[groupKey].income += amt;
+                groups[groupKey].subGroups[subKey].income += amt;
+            } else {
+                groups[groupKey].expense += amt;
+                groups[groupKey].subGroups[subKey].expense += amt;
+            }
         });
 
+        // Update Global UI
         document.getElementById('finTotalIncome').innerText = `₱${FinanceManager.formatMoney(globalIncome)}`;
         document.getElementById('finTotalExpense').innerText = `₱${FinanceManager.formatMoney(globalExpense)}`;
         document.getElementById('finNetBalance').innerText = `₱${FinanceManager.formatMoney(globalIncome - globalExpense)}`;
@@ -248,81 +266,114 @@ export const FinanceManager = {
             if (dl) dl.innerHTML = Array.from(lists[k]).map(v => `<option value="${v}">`).join('');
         });
 
+        // 4. Render Nested HTML Cards
         let cardsHtml = '';
-        Object.keys(groups).sort().forEach(key => {
+        Object.keys(groups).sort().forEach((key, gIdx) => {
             const g = groups[key];
-            g.records.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
             const net = g.income - g.expense;
             const netColor = net >= 0 ? 'text-green-600' : 'text-red-600';
             const icon = g.type === 'project' ? '<i class="fas fa-folder-open"></i>' : '<i class="fas fa-layer-group"></i>';
-            const badge = g.type === 'project' ? `<span class="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ml-2">Project</span>` : '';
+            const badge = g.type === 'project' ? `<span class="bg-indigo-100 text-indigo-800 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ml-2 border border-indigo-200">Project</span>` : '';
 
-            let rowsHtml = '';
-            if (g.records.length === 0) {
-                rowsHtml = `<tr><td colspan="4" class="px-3 py-4 text-center text-gray-400 italic text-sm">No transactions yet.</td></tr>`;
-            } else {
-                g.records.forEach((r, rIdx) => {
+            let totalRecords = 0;
+            let subGroupsHtml = '';
+
+            // Generate HTML for each Sub-category (Nested Accordion)
+            Object.keys(g.subGroups).sort().forEach((subKey, sIdx) => {
+                const sg = g.subGroups[subKey];
+                totalRecords += sg.records.length;
+                sg.records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                const sgNet = sg.income - sg.expense;
+                const sgNetColor = sgNet >= 0 ? 'text-green-600' : 'text-red-600';
+                const uniqueSubId = `sub-${gIdx}-${sIdx}`;
+
+                let rowsHtml = '';
+                sg.records.forEach(r => {
                     const isIncome = r.type === 'Income';
                     const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
                     const sign = isIncome ? '+' : '-';
-                    const subGroupsArr = [r.subGroup1, r.subGroup2, r.subGroup3, r.subGroup4, r.subGroup5].filter(Boolean);
-                    const subGroupsHtml = subGroupsArr.length > 0 ? `<span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded mt-1 inline-block border border-gray-200 mr-1">${subGroupsArr.join(' / ')}</span>` : '';
-                    
-                    const attachBtn = r.attachment ? `<button onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[10px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> View</button>` : '';
+                    const extraSubsArr = [r.subGroup2, r.subGroup3, r.subGroup4, r.subGroup5].filter(Boolean);
+                    const extraSubsHtml = extraSubsArr.length > 0 ? `<span class="text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded mt-1 inline-block border border-gray-200 mr-1">${extraSubsArr.join(' / ')}</span>` : '';
+                    const attachBtn = r.attachment ? `<button onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> Image</button>` : '';
 
                     rowsHtml += `
-                    <tr class="border-b border-gray-50 hover:bg-blue-50/30 transition">
-                        <td class="px-3 py-3 whitespace-nowrap text-xs">${r.date}</td>
-                        <td class="px-3 py-3">
-                            <span class="font-bold text-gray-700 block text-sm">${r.desc}</span>
-                            ${subGroupsHtml} ${attachBtn}
+                    <tr class="border-b border-gray-100 hover:bg-blue-50/50 transition">
+                        <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500 align-top pt-3">${r.date}</td>
+                        <td class="px-3 py-2 align-top pt-2.5">
+                            <span class="font-semibold text-gray-700 block text-sm leading-tight">${r.desc}</span>
+                            ${extraSubsHtml} ${attachBtn}
                         </td>
-                        <td class="px-3 py-3 text-right font-bold ${colorClass} whitespace-nowrap">
+                        <td class="px-3 py-2 text-right font-bold ${colorClass} whitespace-nowrap align-top pt-3">
                             ${sign}₱${FinanceManager.formatMoney(r.amount)}
                         </td>
                     </tr>`;
                 });
+
+                subGroupsHtml += `
+                <div class="border-t border-gray-100 bg-white">
+                    <div class="p-3 bg-gray-50/30 hover:bg-gray-100/80 transition flex justify-between items-center cursor-pointer select-none pl-6" onclick="FinanceManager.toggleElement('${uniqueSubId}')">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-xs"></i>
+                            <h4 class="font-bold text-gray-700 text-sm">${subKey}</h4>
+                            <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 rounded">${sg.records.length}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-bold ${sgNetColor}">₱${FinanceManager.formatMoney(sgNet)}</span>
+                            <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300" id="icon-${uniqueSubId}"></i>
+                        </div>
+                    </div>
+                    <div class="hidden flex-col bg-white overflow-hidden" id="body-${uniqueSubId}">
+                        <div class="overflow-x-auto pl-4">
+                            <table class="w-full text-left text-gray-600">
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            if (totalRecords === 0) {
+                subGroupsHtml = `<div class="p-4 text-center text-gray-400 italic text-sm border-t border-gray-100">No transactions yet.</div>`;
             }
 
+            // Main Category Card
             cardsHtml += `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-gray-50/50 hover:bg-gray-100 transition flex justify-between items-center cursor-pointer select-none" onclick="FinanceManager.toggleGroup('${key}')">
+                <div class="p-4 bg-gray-50/80 hover:bg-gray-100 transition flex justify-between items-center cursor-pointer select-none" onclick="FinanceManager.toggleElement('${key}')">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full ${g.type === 'project' ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center shrink-0">
+                        <div class="w-10 h-10 rounded-full ${g.type === 'project' ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center shrink-0 shadow-sm border border-white">
                             ${icon}
                         </div>
                         <div>
                             <h3 class="font-bold text-gray-800 leading-tight">${g.title} ${badge}</h3>
-                            <p class="text-[11px] text-gray-500 font-medium mt-0.5">${g.records.length} Records</p>
+                            <p class="text-[11px] text-gray-500 font-medium mt-0.5">${totalRecords} Total Records</p>
                         </div>
                     </div>
-                    <div class="text-right flex items-center gap-4">
-                        <div class="hidden sm:block text-right mr-2">
-                            <p class="text-[10px] text-gray-400 uppercase font-bold">Net Position</p>
+                    <div class="text-right flex items-center gap-3 sm:gap-4">
+                        <div class="text-right mr-1">
+                            <p class="text-[9px] text-gray-400 uppercase font-bold hidden sm:block">Net Position</p>
                             <p class="text-sm font-bold ${netColor}">₱${FinanceManager.formatMoney(net)}</p>
                         </div>
                         <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300" id="icon-${key}"></i>
                     </div>
                 </div>
                 
-                <div class="hidden border-t border-gray-200 bg-white flex-col" id="body-${key}">
-                    <div class="p-3 bg-gray-50 flex justify-between items-center border-b border-gray-100">
+                <div class="hidden flex-col bg-white" id="body-${key}">
+                    <div class="p-3 bg-gray-50 flex justify-between items-center border-t border-b border-gray-200 shadow-inner">
                         <div class="flex gap-4">
-                            <div><span class="text-[10px] text-gray-500 uppercase font-bold block">In</span><span class="text-sm font-bold text-green-600">₱${FinanceManager.formatMoney(g.income)}</span></div>
-                            <div><span class="text-[10px] text-gray-500 uppercase font-bold block">Out</span><span class="text-sm font-bold text-red-600">₱${FinanceManager.formatMoney(g.expense)}</span></div>
+                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Income</span><span class="text-sm font-bold text-green-600">₱${FinanceManager.formatMoney(g.income)}</span></div>
+                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Expense</span><span class="text-sm font-bold text-red-600">₱${FinanceManager.formatMoney(g.expense)}</span></div>
                         </div>
                         <button onclick="FinanceManager.openRecordForm('${g.type === 'project' ? g.id : ''}', '${g.title}', '${g.type === 'group' ? g.id : ''}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-plus"></i> Add
+                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Add to ${g.type === 'project' ? 'Project' : 'Group'}</span>
                         </button>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-gray-600">
-                            <tbody class="divide-y divide-gray-50">
-                                ${rowsHtml}
-                            </tbody>
-                        </table>
-                    </div>
+                    
+                    ${subGroupsHtml}
+                    
                 </div>
             </div>
             `;
@@ -331,7 +382,7 @@ export const FinanceManager = {
         document.getElementById('financeGroupsContainer').innerHTML = cardsHtml;
     },
 
-    toggleGroup: (key) => {
+    toggleElement: (key) => {
         const body = document.getElementById(`body-${key}`);
         const icon = document.getElementById(`icon-${key}`);
         if (body.classList.contains('hidden')) {
