@@ -4,7 +4,6 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Strict CORS Configuration using Environment Variables (No Fallback)
     const corsHeaders = {
       "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN, 
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -15,16 +14,12 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // ==========================================
-    // GET: FETCH DATA
-    // ==========================================
     if (request.method === "GET" && url.pathname === "/api/data") {
       try {
         const path = url.searchParams.get("path");
         let results;
 
         if (path === 'resources') {
-          // Fetch resources, excluding soft-deleted items
           const { results: res } = await env.DB.prepare("SELECT * FROM Resource_Links WHERE Is_Deleted IS NULL OR Is_Deleted = 0 ORDER BY Category, Title").all();
           results = res;
         } else {
@@ -42,16 +37,11 @@ export default {
       }
     }
 
-    // ==========================================
-    // POST: EXECUTE ACTIONS
-    // ==========================================
     if (request.method === "POST" && url.pathname === "/api/action") {
       try {
         const body = await request.json();
 
-        // --- ACTION: LOGIN ---
         if (body.action === 'login') {
-          // Added Email and Contact_Number to the SELECT statement
           const { results } = await env.DB.prepare("SELECT User_ID as id, Username as username, Name as name, Avatar as avatar, Email as email, Contact_Number as contact FROM Users WHERE Username = ? AND Password = ?")
             .bind(body.username, body.password)
             .all();
@@ -62,7 +52,6 @@ export default {
           return new Response(JSON.stringify({ status: "error", message: "Invalid credentials" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- ACTION: UPDATE DETAILS ---
         if (body.action === 'update_details') {
           await env.DB.prepare("UPDATE Users SET Name = ?, Username = ?, Email = ?, Contact_Number = ? WHERE User_ID = ?")
             .bind(body.name, body.username, body.email, body.contact, body.id).run();
@@ -70,9 +59,7 @@ export default {
           return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- ACTION: UPDATE AVATAR ---
         if (body.action === 'update_avatar') {
-          // Validates password directly in the query
           const result = await env.DB.prepare("UPDATE Users SET Avatar = ? WHERE User_ID = ? AND Password = ?")
             .bind(body.avatar, body.id, body.password).run();
             
@@ -83,9 +70,7 @@ export default {
           }
         }
 
-        // --- ACTION: UPDATE PASSWORD ---
         if (body.action === 'update_password') {
-           // Validates current password directly in the query
           const result = await env.DB.prepare("UPDATE Users SET Password = ? WHERE User_ID = ? AND Password = ?")
             .bind(body.newPassword, body.id, body.currentPassword).run();
             
@@ -96,7 +81,6 @@ export default {
           }
         }
 
-        // --- ACTION: ADD TEACHING HOURS (BATCH) ---
         if (body.action === 'add_hours_batch') {
           const hourlyRate = 400;
           const stmt = env.DB.prepare(`
@@ -105,7 +89,6 @@ export default {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Unpaid', NULL, ?)
           `);
 
-          // Create an array of prepared statements for D1 batch execution
           const batchList = body.records.map(record => {
             const totalEarnings = parseFloat(record.Total_Hours || 0) * hourlyRate;
             const entryId = crypto.randomUUID();
@@ -119,7 +102,6 @@ export default {
           return new Response(JSON.stringify({ status: "success", count: batchList.length }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- ACTION: UPDATE PAYMENT ---
         if (body.action === 'update_payment') {
           const placeholders = body.entryIds.map(() => '?').join(',');
           const query = `UPDATE Teaching_Hours SET Payment_Status = 'Paid', Date_Paid = ? WHERE Entry_ID IN (${placeholders})`;
@@ -129,7 +111,6 @@ export default {
           return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- ACTION: ADD RESOURCE ---
         if (body.action === 'add_resource') {
           const resourceId = crypto.randomUUID();
           await env.DB.prepare("INSERT INTO Resource_Links (Resource_ID, Category, Title, URL, Is_Deleted) VALUES (?, ?, ?, ?, 0)")
@@ -137,18 +118,47 @@ export default {
           return new Response(JSON.stringify({ status: "success", resourceId }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- ACTION: EDIT RESOURCE ---
         if (body.action === 'edit_resource') {
           await env.DB.prepare("UPDATE Resource_Links SET Category = ?, Title = ?, URL = ? WHERE Resource_ID = ?")
             .bind(body.category, body.title, body.url, body.resourceId).run();
           return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- ACTION: DELETE RESOURCE (SOFT DELETE) ---
         if (body.action === 'delete_resource') {
           await env.DB.prepare("UPDATE Resource_Links SET Is_Deleted = 1 WHERE Resource_ID = ?")
             .bind(body.resourceId).run();
           return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'get_finance_ledger') {
+          // Expects a table: Finance_Transactions (Transaction_ID, Date, Type, Main_Group, Sub_Group, Description, Amount)
+          let transactions = [];
+          try {
+            const res = await env.DB.prepare("SELECT * FROM Finance_Transactions ORDER BY Date DESC").all();
+            transactions = res.results;
+          } catch(e) { /* Table might not exist on first run */ }
+
+          const { results: teachingHours } = await env.DB.prepare("SELECT * FROM Teaching_Hours WHERE Payment_Status = 'Paid' ORDER BY Date_Paid DESC").all();
+          
+          return new Response(JSON.stringify({ status: "success", transactions, teachingHours }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'add_finance_records') {
+          const stmt = env.DB.prepare(`
+            INSERT INTO Finance_Transactions 
+            (Transaction_ID, Date, Type, Main_Group, Sub_Group, Description, Amount) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `);
+
+          const batchList = body.records.map(record => {
+            const transId = crypto.randomUUID();
+            return stmt.bind(
+              transId, record.date, record.type, record.group, record.subGroup, record.description, record.amount
+            );
+          });
+
+          await env.DB.batch(batchList);
+          return new Response(JSON.stringify({ status: "success", count: batchList.length }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
         return new Response(JSON.stringify({ status: "error", message: "Unknown action" }), { headers: { "content-type": "application/json", ...corsHeaders } });
