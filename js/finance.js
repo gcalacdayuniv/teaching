@@ -9,6 +9,43 @@ export const FinanceManager = {
         return parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
 
+    compressImage: (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to 70% JPEG
+                };
+                img.onerror = (e) => reject(e);
+            };
+            reader.onerror = (e) => reject(e);
+        });
+    },
+
     injectComponent: () => {
         const mainView = document.getElementById('main-view');
         
@@ -47,7 +84,7 @@ export const FinanceManager = {
             <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
                 <h3 class="font-bold text-gray-700 mb-3 ml-1">Ledgers & Categories</h3>
                 <div id="financeGroupsContainer" class="space-y-3">
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -68,7 +105,7 @@ export const FinanceManager = {
                         </button>
                         <div class="pt-4 border-t border-gray-100 flex gap-3">
                             <button type="button" onclick="FinanceManager.closeRecordForm()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition">Cancel</button>
-                            <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition">Save Records</button>
+                            <button type="submit" id="financeSubmitBtn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition">Save Records</button>
                         </div>
                     </form>
                 </div>
@@ -92,6 +129,11 @@ export const FinanceManager = {
                     </div>
                 </form>
             </div>
+        </div>
+
+        <div id="imageViewerModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[120] flex items-center justify-center p-4" onclick="this.classList.add('hidden')">
+            <button class="absolute top-4 right-4 text-white hover:text-red-400 text-3xl"><i class="fas fa-times"></i></button>
+            <img id="viewerImage" src="" class="max-w-full max-h-full object-contain rounded shadow-2xl">
         </div>
 
         <datalist id="dl_MainGroup"></datalist>
@@ -133,19 +175,12 @@ export const FinanceManager = {
         const groups = {}; 
         const lists = { MainGroup: new Set(), SubGroup1: new Set(), SubGroup2: new Set(), SubGroup3: new Set(), SubGroup4: new Set(), SubGroup5: new Set() };
         
-        // 1. Initialize Project Groups
         projects.forEach(p => {
             groups[`proj_${p.Project_ID}`] = {
-                title: p.Name,
-                type: 'project',
-                id: p.Project_ID,
-                income: 0,
-                expense: 0,
-                records: []
+                title: p.Name, type: 'project', id: p.Project_ID, income: 0, expense: 0, records: []
             };
         });
 
-        // 2. Aggregate Teaching Hours into standard "Earnings" Group
         const groupedTeaching = {};
         teachingHours.forEach(th => {
             const date = th.Date_Paid || th.Date;
@@ -153,7 +188,7 @@ export const FinanceManager = {
                 groupedTeaching[date] = {
                     date: date, type: 'Income', group: 'Earnings',
                     subGroup1: 'Teaching', subGroup2: '', subGroup3: '', subGroup4: '', subGroup5: '',
-                    desc: 'Teaching Earnings (Aggregated)', amount: 0, projectId: null
+                    desc: 'Teaching Earnings (Aggregated)', amount: 0, projectId: null, attachment: null
                 };
             }
             groupedTeaching[date].amount += parseFloat(th.Total_Earnings);
@@ -171,16 +206,14 @@ export const FinanceManager = {
             lists.SubGroup1.add('Teaching');
         });
 
-        // 3. Process All Standard Transactions
         transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
             const r = {
                 date: t.Date, type: t.Type, group: t.Main_Group,
                 subGroup1: t.Sub_Group_1, subGroup2: t.Sub_Group_2, subGroup3: t.Sub_Group_3, subGroup4: t.Sub_Group_4, subGroup5: t.Sub_Group_5,
-                desc: t.Description, amount: amt, projectId: t.Project_ID
+                desc: t.Description, amount: amt, projectId: t.Project_ID, attachment: t.Attachment
             };
 
-            // Populate Datalists
             if (t.Main_Group) lists.MainGroup.add(t.Main_Group);
             if (t.Sub_Group_1) lists.SubGroup1.add(t.Sub_Group_1);
             if (t.Sub_Group_2) lists.SubGroup2.add(t.Sub_Group_2);
@@ -196,8 +229,7 @@ export const FinanceManager = {
             if (!groups[groupKey]) {
                 groups[groupKey] = {
                     title: t.Project_ID ? 'Unknown Project' : t.Main_Group,
-                    type: t.Project_ID ? 'project' : 'group',
-                    id: t.Project_ID || t.Main_Group,
+                    type: t.Project_ID ? 'project' : 'group', id: t.Project_ID || t.Main_Group,
                     income: 0, expense: 0, records: []
                 };
             }
@@ -207,46 +239,44 @@ export const FinanceManager = {
             else groups[groupKey].expense += amt;
         });
 
-        // Update Global UI
         document.getElementById('finTotalIncome').innerText = `₱${FinanceManager.formatMoney(globalIncome)}`;
         document.getElementById('finTotalExpense').innerText = `₱${FinanceManager.formatMoney(globalExpense)}`;
         document.getElementById('finNetBalance').innerText = `₱${FinanceManager.formatMoney(globalIncome - globalExpense)}`;
 
-        // Populate HTML Datalists
         Object.keys(lists).forEach(k => {
             const dl = document.getElementById(`dl_${k}`);
             if (dl) dl.innerHTML = Array.from(lists[k]).map(v => `<option value="${v}">`).join('');
         });
 
-        // 4. Render Collapsible Cards
         let cardsHtml = '';
         Object.keys(groups).sort().forEach(key => {
             const g = groups[key];
-            g.records.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort latest first
+            g.records.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             const net = g.income - g.expense;
             const netColor = net >= 0 ? 'text-green-600' : 'text-red-600';
             const icon = g.type === 'project' ? '<i class="fas fa-folder-open"></i>' : '<i class="fas fa-layer-group"></i>';
             const badge = g.type === 'project' ? `<span class="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ml-2">Project</span>` : '';
 
-            // Generate Ledger Table Rows for this Group
             let rowsHtml = '';
             if (g.records.length === 0) {
                 rowsHtml = `<tr><td colspan="4" class="px-3 py-4 text-center text-gray-400 italic text-sm">No transactions yet.</td></tr>`;
             } else {
-                g.records.forEach(r => {
+                g.records.forEach((r, rIdx) => {
                     const isIncome = r.type === 'Income';
                     const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
                     const sign = isIncome ? '+' : '-';
                     const subGroupsArr = [r.subGroup1, r.subGroup2, r.subGroup3, r.subGroup4, r.subGroup5].filter(Boolean);
-                    const subGroupsHtml = subGroupsArr.length > 0 ? `<span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded mt-1 inline-block border border-gray-200">${subGroupsArr.join(' / ')}</span>` : '';
+                    const subGroupsHtml = subGroupsArr.length > 0 ? `<span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded mt-1 inline-block border border-gray-200 mr-1">${subGroupsArr.join(' / ')}</span>` : '';
+                    
+                    const attachBtn = r.attachment ? `<button onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[10px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> View</button>` : '';
 
                     rowsHtml += `
                     <tr class="border-b border-gray-50 hover:bg-blue-50/30 transition">
                         <td class="px-3 py-3 whitespace-nowrap text-xs">${r.date}</td>
                         <td class="px-3 py-3">
                             <span class="font-bold text-gray-700 block text-sm">${r.desc}</span>
-                            ${subGroupsHtml}
+                            ${subGroupsHtml} ${attachBtn}
                         </td>
                         <td class="px-3 py-3 text-right font-bold ${colorClass} whitespace-nowrap">
                             ${sign}₱${FinanceManager.formatMoney(r.amount)}
@@ -313,6 +343,13 @@ export const FinanceManager = {
             body.classList.remove('flex');
             icon.style.transform = 'rotate(0deg)';
         }
+    },
+
+    viewImage: (base64Str) => {
+        const modal = document.getElementById('imageViewerModal');
+        const img = document.getElementById('viewerImage');
+        img.src = base64Str;
+        modal.classList.remove('hidden');
     },
 
     openNewProjectModal: () => {
@@ -395,6 +432,11 @@ export const FinanceManager = {
                 <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 5">
             </div>
             
+            <div class="mt-3 bg-white p-2 border border-gray-300 rounded-lg flex items-center justify-between">
+                <label for="finFile_${idx}" class="text-sm font-medium text-gray-600 cursor-pointer flex-1"><i class="fas fa-camera mr-2"></i> Attach Receipt/Image</label>
+                <input type="file" id="finFile_${idx}" accept="image/*" class="text-xs text-gray-500 w-full max-w-[180px]">
+            </div>
+
             <input type="text" id="finDesc_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mt-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Description" required>
             
             <div class="relative mt-3">
@@ -407,6 +449,11 @@ export const FinanceManager = {
 
     submitRecords: async (e) => {
         e.preventDefault();
+        const btn = document.getElementById('financeSubmitBtn');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+        btn.disabled = true;
+
         const entryEls = document.querySelectorAll('.fin-entry');
         const records = [];
 
@@ -425,6 +472,17 @@ export const FinanceManager = {
             const subGroup5 = document.getElementById(`finSubGroup5_${idx}`)?.value;
             const desc = document.getElementById(`finDesc_${idx}`)?.value;
             const amt = document.getElementById(`finAmt_${idx}`)?.value;
+            
+            const fileInput = document.getElementById(`finFile_${idx}`);
+            let attachmentData = null;
+
+            if (fileInput && fileInput.files.length > 0) {
+                try {
+                    attachmentData = await FinanceManager.compressImage(fileInput.files[0]);
+                } catch(err) {
+                    console.error("Failed to compress image", err);
+                }
+            }
 
             if (!date || !type || !desc || !amt) continue;
 
@@ -432,11 +490,16 @@ export const FinanceManager = {
                 date, type, group, 
                 subGroup1, subGroup2, subGroup3, subGroup4, subGroup5, 
                 description: desc, amount: amt,
-                projectId: FinanceManager.currentProjectId 
+                projectId: FinanceManager.currentProjectId,
+                attachment: attachmentData
             });
         }
 
-        if (records.length === 0) return;
+        if (records.length === 0) {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+            return;
+        }
 
         try {
             const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'add_finance_records', records });
@@ -449,6 +512,9 @@ export const FinanceManager = {
             }
         } catch (error) {
             alert("Network error saving records.");
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
         }
     }
 };
