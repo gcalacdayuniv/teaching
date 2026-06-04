@@ -112,20 +112,26 @@ export function injectComponents() {
                     <p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryUnpaid">₱0.00</p>
                 </div>
             </div>
-            <div class="bg-white p-3 rounded-xl border flex flex-col gap-3 shrink-0 shadow-sm">
-                <div class="flex gap-4 border-b">
-                    <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-blue-600 text-blue-600 outline-none" data-type="Rendered">Rendered</button>
-                    <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 outline-none" data-type="Paid">Paid</button>
-                    <input type="hidden" id="filterType" value="Rendered">
+            <div class="bg-white p-3 rounded-xl border flex flex-col gap-2 shrink-0 shadow-sm">
+                <div class="flex justify-between items-center border-b">
+                    <div class="flex gap-4">
+                        <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-blue-600 text-blue-600 outline-none" data-type="Rendered">Rendered</button>
+                        <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 outline-none" data-type="Paid">Paid</button>
+                        <input type="hidden" id="filterType" value="Rendered">
+                    </div>
+                    <button id="markPaidBtn" class="text-indigo-600 hover:text-indigo-800 p-2 mr-1 transition outline-none" title="Mark Selected as Paid">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
                 </div>
-                <div class="flex flex-col sm:flex-row justify-between items-end gap-3">
-                    <div class="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto items-end">
-                        <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Start</label><input type="date" id="filterStart" class="w-full border p-1.5 rounded text-xs outline-none"></div>
-                        <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">End</label><input type="date" id="filterEnd" class="w-full border p-1.5 rounded text-xs outline-none"></div>
-                    </div>
-                    <div class="w-full sm:w-auto mt-2 sm:mt-0">
-                        <button id="markPaidBtn" class="w-full bg-indigo-600 text-white px-4 py-1.5 rounded text-[11px] sm:text-xs font-bold shadow hover:bg-indigo-700 transition"><i class="fas fa-check mr-1"></i> Mark Paid</button>
-                    </div>
+                <div class="flex items-center gap-2 w-full pt-1">
+                    <input type="date" id="filterStart" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700">
+                    <span class="text-xs font-bold text-gray-400">to</span>
+                    <input type="date" id="filterEnd" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700">
+                    <button id="clearDatesBtn" class="text-gray-400 hover:text-red-500 px-2 py-1.5 transition outline-none" title="Clear Dates">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             </div>
             <div class="bg-white border rounded-xl shadow-sm w-full overflow-x-auto">
@@ -133,9 +139,9 @@ export function injectComponents() {
                     <thead class="bg-gray-50 border-b uppercase text-[10px] font-bold text-gray-500">
                         <tr>
                             <th class="px-2 py-2 w-8 text-center"><input type="checkbox" id="selectAllRecords" class="w-3 h-3 rounded text-blue-600"></th>
-                            <th class="px-2 py-2">Date</th>
-                            <th class="px-2 py-2">Status</th>
-                            <th class="px-2 py-2 text-right">Amount</th>
+                            <th class="px-2 py-2 text-center">Date</th>
+                            <th class="px-2 py-2 text-center">Status</th>
+                            <th class="px-2 py-2 text-center">Amount</th>
                         </tr>
                     </thead>
                     <tbody id="dataTableBody" class="divide-y divide-gray-100 text-[11px] sm:text-xs"><tr><td colspan="4" class="py-6 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
