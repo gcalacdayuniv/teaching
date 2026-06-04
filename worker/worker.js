@@ -1,5 +1,3 @@
-// worker/worker.js
-
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -131,12 +129,11 @@ export default {
         }
 
         if (body.action === 'get_finance_ledger') {
-          // Expects a table: Finance_Transactions (Transaction_ID, Date, Type, Main_Group, Sub_Group, Description, Amount)
           let transactions = [];
           try {
             const res = await env.DB.prepare("SELECT * FROM Finance_Transactions ORDER BY Date DESC").all();
             transactions = res.results;
-          } catch(e) { /* Table might not exist on first run */ }
+          } catch(e) { }
 
           const { results: teachingHours } = await env.DB.prepare("SELECT * FROM Teaching_Hours WHERE Payment_Status = 'Paid' ORDER BY Date_Paid DESC").all();
           
@@ -146,14 +143,16 @@ export default {
         if (body.action === 'add_finance_records') {
           const stmt = env.DB.prepare(`
             INSERT INTO Finance_Transactions 
-            (Transaction_ID, Date, Type, Main_Group, Sub_Group, Description, Amount) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (Transaction_ID, Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `);
 
           const batchList = body.records.map(record => {
             const transId = crypto.randomUUID();
             return stmt.bind(
-              transId, record.date, record.type, record.group, record.subGroup, record.description, record.amount
+              transId, record.date, record.type, record.group, 
+              record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
+              record.description, record.amount
             );
           });
 
