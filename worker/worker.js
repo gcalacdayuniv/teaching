@@ -128,6 +128,31 @@ export default {
           return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
+        if (body.action === 'create_project') {
+          const projectId = crypto.randomUUID();
+          await env.DB.prepare("INSERT INTO Projects (Project_ID, Name) VALUES (?, ?)")
+            .bind(projectId, body.name).run();
+          return new Response(JSON.stringify({ status: "success", projectId }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'get_projects') {
+          let projects = [];
+          try {
+            const { results } = await env.DB.prepare("SELECT * FROM Projects ORDER BY Created_At DESC").all();
+            projects = results;
+          } catch(e) { }
+          return new Response(JSON.stringify({ status: "success", projects }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'get_project_ledger') {
+          let transactions = [];
+          try {
+            const { results } = await env.DB.prepare("SELECT * FROM Finance_Transactions WHERE Project_ID = ? ORDER BY Date DESC").bind(body.projectId).all();
+            transactions = results;
+          } catch(e) { }
+          return new Response(JSON.stringify({ status: "success", transactions }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
         if (body.action === 'get_finance_ledger') {
           let transactions = [];
           try {
@@ -143,8 +168,8 @@ export default {
         if (body.action === 'add_finance_records') {
           const stmt = env.DB.prepare(`
             INSERT INTO Finance_Transactions 
-            (Transaction_ID, Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (Transaction_ID, Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount, Project_ID) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `);
 
           const batchList = body.records.map(record => {
@@ -152,7 +177,7 @@ export default {
             return stmt.bind(
               transId, record.date, record.type, record.group, 
               record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
-              record.description, record.amount
+              record.description, record.amount, record.projectId || null
             );
           });
 
