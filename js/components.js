@@ -4,7 +4,6 @@ export function injectComponents() {
     const mainView = document.getElementById('main-view');
     const overlayContainer = document.getElementById('overlay-container');
 
-    // 1. Inject Overlays (Login & Modals)
     overlayContainer.innerHTML = `
         <div id="loginScreen" class="fixed inset-0 bg-blue-900 z-[200] flex flex-col items-center justify-center p-4 hidden">
             <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
@@ -48,12 +47,22 @@ export function injectComponents() {
                         <datalist id="existingCategories"></datalist>
                     </div>
                     <div>
+                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Action Type</label>
+                        <select id="resourceActionType" class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
+                            <option value="link">Just a Link</option>
+                            <option value="create_doc">Create New Public Google Doc</option>
+                            <option value="create_sheet">Create New Public Google Sheet</option>
+                            <option value="create_slide">Create New Public Google Slide</option>
+                            <option value="duplicate">Duplicate Existing Google File</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Title</label>
                         <input type="text" id="resourceTitle" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">URL Address</label>
-                        <input type="url" id="resourceUrl" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
+                    <div id="urlContainer">
+                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1" id="urlLabel">URL Address</label>
+                        <input type="url" id="resourceUrl" class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="flex justify-end gap-2 mt-5">
                         <button type="button" onclick="document.getElementById('resourceModal').classList.add('hidden')" id="cancelResourceBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
@@ -119,7 +128,6 @@ export function injectComponents() {
         </div>
     `;
 
-    // 2. Inject Main Views (Panels)
     mainView.innerHTML = `
         <div id="welcomePanel" class="app-view hidden h-full flex-col items-center justify-center text-gray-400 py-20 pb-24">
             <img id="welcomeAvatar" src="" class="w-24 h-24 rounded-full mb-4 shadow-md object-cover border-4 border-white bg-white">
@@ -140,10 +148,7 @@ export function injectComponents() {
                         <div><label class="block text-xs font-semibold text-gray-700">Department / College</label><input type="text" id="commonCollege" list="colList" required class="w-full border p-2 rounded-lg mt-1 outline-none"></div>
                     </div>
                 </div>
-
-                <div id="schedule-container" class="space-y-4">
-                    </div>
-
+                <div id="schedule-container" class="space-y-4"></div>
                 <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
                     <button type="button" id="addScheduleBtn" class="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-lg hover:bg-gray-200 transition border"><i class="fas fa-plus mr-2"></i> Add Another Subject</button>
                     <button type="submit" id="logSubmitBtn" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition shadow"><i class="fas fa-save mr-2"></i> Generate & Save All</button>
@@ -212,7 +217,6 @@ export function injectComponents() {
         </div>
     `;
 
-    // 3. Inject Account Menu Navigation Replacement
     const accountMenu = document.getElementById('accountMenu');
     if (accountMenu) {
         accountMenu.innerHTML = `
@@ -230,32 +234,16 @@ export function injectComponents() {
                 <p id="menuEmail" class="text-xs text-gray-500 mt-0.5 truncate w-full px-2"></p>
                 <p id="menuContact" class="text-xs text-gray-500 truncate w-full px-2"></p>
             </div>
-            
             <nav class="flex-1 overflow-y-auto py-3">
                 <div class="px-5 mb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Settings</div>
                 <ul class="space-y-1 px-2 text-sm font-semibold text-gray-700">
-                    <li>
-                        <button onclick="window.openUpdateDetailsModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left">
-                            <i class="fas fa-id-card w-5 text-center text-gray-500"></i> Update Details
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="window.openProfilePicModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left">
-                            <i class="fas fa-camera w-5 text-center text-gray-500"></i> Upload Profile Picture
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="window.openChangePasswordModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left">
-                            <i class="fas fa-key w-5 text-center text-gray-500"></i> Change Password
-                        </button>
-                    </li>
+                    <li><button onclick="window.openUpdateDetailsModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left"><i class="fas fa-id-card w-5 text-center text-gray-500"></i> Update Details</button></li>
+                    <li><button onclick="window.openProfilePicModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left"><i class="fas fa-camera w-5 text-center text-gray-500"></i> Upload Profile Picture</button></li>
+                    <li><button onclick="window.openChangePasswordModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left"><i class="fas fa-key w-5 text-center text-gray-500"></i> Change Password</button></li>
                 </ul>
             </nav>
-            
             <div class="p-3 border-t border-gray-100 bg-gray-50">
-                <button id="logout-btn" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2 rounded-lg transition border border-red-100 shadow-sm flex items-center justify-center gap-2 text-sm">
-                    <i class="fas fa-sign-out-alt"></i> Sign Out
-                </button>
+                <button id="logout-btn" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2 rounded-lg transition border border-red-100 shadow-sm flex items-center justify-center gap-2 text-sm"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
             </div>
         `;
     }
