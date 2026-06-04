@@ -64,7 +64,7 @@ export function injectComponents() {
         </div>
     `;
 
-    // 2. Inject Main Views (Panels) - Added pb-24 to clear bottom nav
+    // 2. Inject Main Views (Panels)
     mainView.innerHTML = `
         <div id="welcomePanel" class="app-view hidden h-full flex-col items-center justify-center text-gray-400 py-20 pb-24">
             <img id="welcomeAvatar" src="" class="w-24 h-24 rounded-full mb-4 shadow-md object-cover border-4 border-white bg-white">
@@ -127,14 +127,11 @@ export function injectComponents() {
                             <th class="px-4 py-3 w-10 text-center"><input type="checkbox" id="selectAllRecords" class="w-4 h-4 rounded text-blue-600"></th>
                             <th class="px-4 py-3">Date</th>
                             <th class="px-4 py-3">Location</th>
-                            <th class="px-4 py-3">Subject</th>
-                            <th class="px-4 py-3">Hrs</th>
                             <th class="px-4 py-3">Earnings</th>
-                            <th class="px-4 py-3">Status</th>
                             <th class="px-4 py-3">Paid</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody" class="divide-y divide-gray-100 text-xs sm:text-sm"><tr><td colspan="8" class="py-10 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
+                    <tbody id="dataTableBody" class="divide-y divide-gray-100 text-xs sm:text-sm"><tr><td colspan="5" class="py-10 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
                 </table>
             </div>
         </div>
