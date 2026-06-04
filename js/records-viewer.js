@@ -1,9 +1,28 @@
+// js/records-viewer.js
+
 import { CONFIG, Utils, API } from './globals.js';
 
 export const RecordsManager = {
     init: () => {
-        const fetchBtn = document.getElementById('fetchRecordsBtn');
-        if (fetchBtn) fetchBtn.addEventListener('click', RecordsManager.fetchData);
+        const startInput = document.getElementById('filterStart');
+        const endInput = document.getElementById('filterEnd');
+
+        if (startInput) startInput.addEventListener('change', RecordsManager.fetchData);
+        if (endInput) endInput.addEventListener('change', RecordsManager.fetchData);
+
+        document.querySelectorAll('.record-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.record-tab').forEach(t => {
+                    t.classList.remove('border-blue-600', 'text-blue-600');
+                    t.classList.add('border-transparent', 'text-gray-500');
+                });
+                e.target.classList.remove('border-transparent', 'text-gray-500');
+                e.target.classList.add('border-blue-600', 'text-blue-600');
+                
+                document.getElementById('filterType').value = e.target.dataset.type;
+                RecordsManager.fetchData();
+            });
+        });
 
         const selectAll = document.getElementById('selectAllRecords');
         if (selectAll) {
