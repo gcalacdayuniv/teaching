@@ -62,6 +62,61 @@ export function injectComponents() {
                 </form>
             </div>
         </div>
+
+        <div id="detailsModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
+                <h2 class="text-lg font-bold mb-4 text-gray-800"><i class="fas fa-id-card text-blue-600 mr-2"></i>Update Details</h2>
+                <form id="detailsForm" class="space-y-3">
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Display Name</label><input type="text" id="detailsName" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Username</label><input type="text" id="detailsUser" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Email Address</label><input type="email" id="detailsEmail" class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Contact Number</label><input type="text" id="detailsContact" class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
+                    <div class="flex justify-end gap-2 mt-5">
+                        <button type="button" onclick="window.closeProfileModals()" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
+                        <button type="submit" id="detailsBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Save Details</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="avatarModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl flex flex-col items-center">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 w-full text-left"><i class="fas fa-camera text-blue-600 mr-2"></i>Profile Picture</h2>
+                <form id="avatarForm" class="space-y-4 w-full flex flex-col items-center">
+                    <div class="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-100 shadow-md bg-gray-50 overflow-hidden flex items-center justify-center">
+                        <img id="modalAvatarPreview" src="" class="w-full h-full object-cover">
+                    </div>
+                    <div class="w-full">
+                        <label class="block text-center cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg text-xs transition">
+                            <i class="fas fa-image mr-1"></i> Choose Photo
+                            <input type="file" id="modalAvatarInput" accept="image/*" class="hidden">
+                        </label>
+                    </div>
+                    <div class="w-full pt-2">
+                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Confirm Password to Update</label>
+                        <input type="password" id="avatarPass" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex justify-end w-full gap-2 mt-2">
+                        <button type="button" onclick="window.closeProfileModals()" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
+                        <button type="submit" id="avatarBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Update Picture</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="passwordModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
+                <h2 class="text-lg font-bold mb-4 text-gray-800"><i class="fas fa-key text-blue-600 mr-2"></i>Change Password</h2>
+                <form id="passwordForm" class="space-y-3">
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Current Password</label><input type="password" id="passCurrent" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">New Password</label><input type="password" id="passNew" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
+                    <div class="flex justify-end gap-2 mt-5">
+                        <button type="button" onclick="window.closeProfileModals()" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
+                        <button type="submit" id="passwordBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     `;
 
     // 2. Inject Main Views (Panels)
@@ -155,22 +210,51 @@ export function injectComponents() {
             </div>
             <div id="resourceGrid" class="flex flex-col gap-2"></div>
         </div>
+    `;
 
-        <div id="profilePanel" class="app-view hidden max-w-md mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6 pb-24">
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 border-b pb-3"><i class="fas fa-user-cog text-gray-500 mr-2"></i>Profile Settings</h2>
-            <form id="profileForm" class="space-y-4">
-                <div><label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Display Name</label><input type="text" id="profName" required class="w-full border p-2 rounded-lg outline-none bg-gray-50"></div>
-                <div><label class="block text-xs font-semibold text-gray-700 uppercase mb-1">New Password</label><input type="password" id="profPass" placeholder="Leave blank to keep current" class="w-full border p-2 rounded-lg outline-none bg-gray-50"></div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Profile Picture</label>
-                    <div class="flex items-center space-x-3 mt-2 mb-1">
-                        <img id="profAvatarPreview" src="" class="w-14 h-14 rounded-full object-cover border bg-gray-100 shadow-sm hidden">
-                        <input type="file" id="profAvatarInput" accept="image/*" capture="user" class="w-full border p-2 rounded-lg outline-none bg-white text-xs text-gray-600 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+    // 3. Inject Account Menu Navigation Replacement
+    const accountMenu = document.getElementById('accountMenu');
+    if (accountMenu) {
+        accountMenu.innerHTML = `
+            <div class="bg-gray-50 p-5 flex flex-col items-center border-b border-gray-200 relative">
+                <button onclick="window.toggleAccountMenu()" class="absolute top-3 left-3 text-gray-400 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+                <div class="relative group mb-2" onclick="window.openProfilePicModal(); window.closeAllMenus();">
+                    <img id="menuAvatar" src="" class="w-20 h-20 rounded-full border-2 border-white shadow-sm object-cover bg-white cursor-pointer">
+                    <div class="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                        <i class="fas fa-camera text-white"></i>
                     </div>
                 </div>
-                <button type="submit" id="profBtn" class="w-full bg-gray-800 text-white font-bold p-3 rounded-lg hover:bg-gray-900 transition mt-6">Save Changes</button>
-                <p id="profStatus" class="text-center text-sm hidden mt-3"></p>
-            </form>
-        </div>
-    `;
+                <h2 id="menuName" class="text-lg font-bold text-gray-900 mt-1"></h2>
+            </div>
+            
+            <nav class="flex-1 overflow-y-auto py-3">
+                <div class="px-5 mb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Settings</div>
+                <ul class="space-y-1 px-2 text-sm font-semibold text-gray-700">
+                    <li>
+                        <button onclick="window.openUpdateDetailsModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left">
+                            <i class="fas fa-id-card w-5 text-center text-gray-500"></i> Update Details
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="window.openProfilePicModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left">
+                            <i class="fas fa-camera w-5 text-center text-gray-500"></i> Upload Profile Picture
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="window.openChangePasswordModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left">
+                            <i class="fas fa-key w-5 text-center text-gray-500"></i> Change Password
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="p-3 border-t border-gray-100 bg-gray-50">
+                <button id="logout-btn" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2 rounded-lg transition border border-red-100 shadow-sm flex items-center justify-center gap-2 text-sm">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </button>
+            </div>
+        `;
+    }
 }
