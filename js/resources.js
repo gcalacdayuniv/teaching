@@ -9,6 +9,7 @@ export const initResources = () => {
     const cancelBtn = document.getElementById('cancelResourceBtn');
     const form = document.getElementById('resourceForm');
     const actionType = document.getElementById('resourceActionType');
+    const deleteForm = document.getElementById('deleteResourceForm');
     
     if (form && !form.dataset.bound) {
         if (cancelBtn) cancelBtn.addEventListener('click', closeResourceModal);
@@ -34,6 +35,17 @@ export const initResources = () => {
         }
         
         form.dataset.bound = true;
+    }
+
+    if (deleteForm && !deleteForm.dataset.bound) {
+        deleteForm.addEventListener('submit', handleResourceDeleteSubmit);
+        deleteForm.dataset.bound = true;
+    }
+
+    // Ensure global click to close resource dropdowns
+    if (!window.resourceDropdownsBound) {
+        document.addEventListener('click', () => closeAllDropdowns());
+        window.resourceDropdownsBound = true;
     }
 
     // Ensure FAB can access the add modal directly
@@ -98,18 +110,59 @@ function renderGrid() {
             </div>
             <div class="flex items-center gap-1 sm:gap-2 shrink-0">
                 <a href="${r.URL}" target="_blank" class="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition" title="Open Link"><i class="fas fa-external-link-alt text-xs"></i></a>
-                <button class="edit-btn w-8 h-8 flex items-center justify-center text-gray-400 hover:text-blue-600 transition bg-gray-50 hover:bg-blue-50 rounded" data-id="${r.Resource_ID}" title="Edit"><i class="fas fa-edit text-xs"></i></button>
-                <button class="del-btn w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition bg-gray-50 hover:bg-red-50 rounded" data-id="${r.Resource_ID}" title="Delete"><i class="fas fa-trash text-xs"></i></button>
+                
+                <button class="edit-btn hidden sm:flex w-8 h-8 items-center justify-center text-gray-400 hover:text-blue-600 transition bg-gray-50 hover:bg-blue-50 rounded" data-id="${r.Resource_ID}" title="Edit"><i class="fas fa-edit text-xs"></i></button>
+                <button class="dup-btn hidden sm:flex w-8 h-8 items-center justify-center text-gray-400 hover:text-green-600 transition bg-gray-50 hover:bg-green-50 rounded" data-id="${r.Resource_ID}" title="Duplicate"><i class="fas fa-copy text-xs"></i></button>
+                <button class="del-btn hidden sm:flex w-8 h-8 items-center justify-center text-gray-400 hover:text-red-500 transition bg-gray-50 hover:bg-red-50 rounded" data-id="${r.Resource_ID}" title="Delete"><i class="fas fa-trash text-xs"></i></button>
+
+                <div class="relative sm:hidden">
+                    <button class="more-btn w-8 h-8 flex items-center justify-center text-gray-400 hover:text-blue-600 transition bg-gray-50 hover:bg-blue-50 rounded focus:outline-none">
+                        <i class="fas fa-ellipsis-v text-xs"></i>
+                    </button>
+                    <div class="resource-dropdown absolute right-0 mt-2 w-36 bg-white border rounded-lg shadow-xl hidden flex-col z-50 overflow-hidden">
+                        <button class="edit-btn flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 w-full text-left" data-id="${r.Resource_ID}"><i class="fas fa-edit text-gray-400 w-4"></i> Edit</button>
+                        <button class="dup-btn flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 w-full text-left" data-id="${r.Resource_ID}"><i class="fas fa-copy text-gray-400 w-4"></i> Duplicate</button>
+                        <button class="del-btn flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 w-full text-left border-t" data-id="${r.Resource_ID}"><i class="fas fa-trash text-red-400 w-4"></i> Delete</button>
+                    </div>
+                </div>
             </div>
         </div>
     `).join('') : '<div class="w-full text-center py-10 text-gray-400 text-sm">No resources available in this category.</div>';
 
     document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => openEditModal(e.currentTarget.dataset.id));
+        btn.addEventListener('click', (e) => {
+            closeAllDropdowns();
+            openEditModal(e.currentTarget.dataset.id);
+        });
     });
+
+    document.querySelectorAll('.dup-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            closeAllDropdowns();
+            openDuplicateModal(e.currentTarget.dataset.id);
+        });
+    });
+
     document.querySelectorAll('.del-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => deleteResource(e.currentTarget.dataset.id));
+        btn.addEventListener('click', (e) => {
+            closeAllDropdowns();
+            confirmDeleteResource(e.currentTarget.dataset.id);
+        });
     });
+
+    document.querySelectorAll('.more-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = e.currentTarget.nextElementSibling;
+            const isHidden = dropdown.classList.contains('hidden');
+            closeAllDropdowns();
+            if (isHidden) dropdown.classList.remove('hidden');
+        });
+    });
+}
+
+function closeAllDropdowns() {
+    document.querySelectorAll('.resource-dropdown').forEach(d => d.classList.add('hidden'));
 }
 
 function updateDatalist() {
@@ -150,7 +203,7 @@ function openEditModal(id) {
     const actionType = document.getElementById('resourceActionType');
     if (actionType) {
         actionType.value = 'link';
-        actionType.disabled = true; // Prevent changing type during edit
+        actionType.disabled = true; 
     }
     document.getElementById('urlContainer')?.classList.remove('hidden');
     const urlLabel = document.getElementById('urlLabel');
@@ -163,9 +216,44 @@ function openEditModal(id) {
     document.getElementById('resourceModal').classList.add('flex');
 }
 
+function openDuplicateModal(id) {
+    const resource = resourcesData.find(r => r.Resource_ID === id);
+    if (!resource) return;
+    
+    document.getElementById('resourceId').value = '';
+    document.getElementById('resourceCategory').value = resource.Category;
+    document.getElementById('resourceTitle').value = resource.Title + ' (Copy)';
+    document.getElementById('resourceUrl').value = resource.URL;
+    
+    const actionType = document.getElementById('resourceActionType');
+    if (actionType) {
+        actionType.value = 'duplicate';
+        actionType.disabled = false;
+        
+        const urlContainer = document.getElementById('urlContainer');
+        const urlLabel = document.getElementById('urlLabel');
+        const urlInput = document.getElementById('resourceUrl');
+        
+        urlContainer.classList.remove('hidden');
+        urlLabel.textContent = 'Original File URL to Duplicate';
+        urlInput.required = true;
+    }
+    
+    document.getElementById('resourceModalTitle').textContent = 'Duplicate Link';
+    document.getElementById('resourceModal').classList.remove('hidden');
+    document.getElementById('resourceModal').classList.add('flex');
+}
+
 function closeResourceModal() {
     document.getElementById('resourceModal').classList.add('hidden');
     document.getElementById('resourceModal').classList.remove('flex');
+}
+
+function confirmDeleteResource(id) {
+    document.getElementById('deleteResourceId').value = id;
+    document.getElementById('deleteResourcePassword').value = '';
+    document.getElementById('deleteResourceModal').classList.remove('hidden');
+    document.getElementById('deleteResourceModal').classList.add('flex');
 }
 
 async function handleResourceSubmit(e) {
@@ -184,7 +272,6 @@ async function handleResourceSubmit(e) {
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
-    // Allow visual indication for time-consuming Google Drive operations
     submitBtn.textContent = (payload.resourceType !== 'link' && !id) ? 'Generating Document...' : 'Saving...';
     submitBtn.disabled = true;
 
@@ -210,23 +297,34 @@ async function handleResourceSubmit(e) {
     }
 }
 
-async function deleteResource(id) {
-    if (!confirm('Are you sure you want to remove this link? (It can still be recovered from the database).')) return;
+async function handleResourceDeleteSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('deleteResourceId').value;
+    const pwd = document.getElementById('deleteResourcePassword').value;
+    const submitBtn = document.getElementById('deleteResourceBtn');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Deleting...';
     
     try {
         const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete_resource', resourceId: id })
+            body: JSON.stringify({ action: 'delete_resource', resourceId: id, password: pwd })
         });
         const data = await res.json();
         
         if (data.status === 'success') {
+            document.getElementById('deleteResourceModal').classList.add('hidden');
+            document.getElementById('deleteResourceModal').classList.remove('flex');
             fetchResources();
         } else {
-            alert('Failed to delete the resource.');
+            alert(data.message || 'Failed to delete the resource. Please ensure your password is correct.');
         }
     } catch(err) {
         alert('A network error occurred while deleting.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Delete';
     }
 }
