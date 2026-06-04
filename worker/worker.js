@@ -1,3 +1,5 @@
+// worker/worker.js
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -49,7 +51,8 @@ export default {
 
         // --- ACTION: LOGIN ---
         if (body.action === 'login') {
-          const { results } = await env.DB.prepare("SELECT User_ID as id, Username as username, Name as name, Avatar as avatar FROM Users WHERE Username = ? AND Password = ?")
+          // Added Email and Contact_Number to the SELECT statement
+          const { results } = await env.DB.prepare("SELECT User_ID as id, Username as username, Name as name, Avatar as avatar, Email as email, Contact_Number as contact FROM Users WHERE Username = ? AND Password = ?")
             .bind(body.username, body.password)
             .all();
             
@@ -59,16 +62,38 @@ export default {
           return new Response(JSON.stringify({ status: "error", message: "Invalid credentials" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- ACTION: UPDATE PROFILE ---
-        if (body.action === 'update_profile') {
-          if (body.newPassword) {
-            await env.DB.prepare("UPDATE Users SET Name = ?, Avatar = ?, Password = ? WHERE User_ID = ?")
-              .bind(body.name, body.avatar, body.newPassword, body.id).run();
+        // --- ACTION: UPDATE DETAILS ---
+        if (body.action === 'update_details') {
+          await env.DB.prepare("UPDATE Users SET Name = ?, Username = ?, Email = ?, Contact_Number = ? WHERE User_ID = ?")
+            .bind(body.name, body.username, body.email, body.contact, body.id).run();
+            
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        // --- ACTION: UPDATE AVATAR ---
+        if (body.action === 'update_avatar') {
+          // Validates password directly in the query
+          const result = await env.DB.prepare("UPDATE Users SET Avatar = ? WHERE User_ID = ? AND Password = ?")
+            .bind(body.avatar, body.id, body.password).run();
+            
+          if (result.meta.changes > 0) {
+            return new Response(JSON.stringify({ status: "success", newAvatar: body.avatar }), { headers: { "content-type": "application/json", ...corsHeaders } });
           } else {
-            await env.DB.prepare("UPDATE Users SET Name = ?, Avatar = ? WHERE User_ID = ?")
-              .bind(body.name, body.avatar, body.id).run();
+            return new Response(JSON.stringify({ status: "error", message: "Incorrect password" }), { headers: { "content-type": "application/json", ...corsHeaders } });
           }
-          return new Response(JSON.stringify({ status: "success", newAvatar: body.avatar }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        // --- ACTION: UPDATE PASSWORD ---
+        if (body.action === 'update_password') {
+           // Validates current password directly in the query
+          const result = await env.DB.prepare("UPDATE Users SET Password = ? WHERE User_ID = ? AND Password = ?")
+            .bind(body.newPassword, body.id, body.currentPassword).run();
+            
+          if (result.meta.changes > 0) {
+            return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+          } else {
+            return new Response(JSON.stringify({ status: "error", message: "Incorrect current password" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+          }
         }
 
         // --- ACTION: ADD TEACHING HOURS (BATCH) ---
