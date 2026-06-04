@@ -4,7 +4,6 @@ import { AppRouter } from './router.js';
 import { AuthManager } from './auth.js';
 import { LoggerManager } from './hours-logger.js';
 import { RecordsManager } from './records-viewer.js';
-import { LedgerManager } from './payment-ledger.js';
 import { ProfileManager } from './profile.js';
 
 initApp();
@@ -22,7 +21,6 @@ function initApp() {
         AppRouter.init();
         LoggerManager.init();
         RecordsManager.init();
-        LedgerManager.init();
         ProfileManager.init();
         
         console.log("Teaching Portal Modular Architecture Loaded Successfully");
