@@ -35,7 +35,71 @@ export const RecordsManager = {
 
         const markPaidBtn = document.getElementById('markPaidBtn');
         if (markPaidBtn) {
-            markPaidBtn.addEventListener('click', RecordsManager.markAsPaid);
+            markPaidBtn.addEventListener('click', RecordsManager.openPaymentModal);
+        }
+
+        const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
+        if (cancelPaymentBtn) {
+            cancelPaymentBtn.addEventListener('click', () => {
+                const modal = document.getElementById('paymentModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+        }
+
+        const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.addEventListener('click', RecordsManager.confirmMarkAsPaid);
+        }
+    },
+
+    openPaymentModal: () => {
+        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            return alert("Select at least one record to mark as paid.");
+        }
+        document.getElementById('selectedPaymentDate').value = new Date().toISOString().split('T')[0];
+        const modal = document.getElementById('paymentModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
+    confirmMarkAsPaid: async () => {
+        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+        const datePaid = document.getElementById('selectedPaymentDate').value;
+        
+        if (!datePaid) {
+            return alert("Please select a date.");
+        }
+
+        const entryIds = Array.from(checkedBoxes).map(cb => cb.value);
+        const btn = document.getElementById('confirmPaymentBtn');
+        const originalBtnText = btn.innerText;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                action: 'update_payment',
+                entryIds: entryIds,
+                datePaid: datePaid
+            });
+            
+            if (data.status === 'success') {
+                const modal = document.getElementById('paymentModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                RecordsManager.fetchData(); 
+            } else {
+                alert("Failed to update records: " + (data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            alert("An error occurred while updating the records.");
+            console.error("Payment Update Error:", error);
+        } finally {
+            btn.innerText = originalBtnText; 
+            btn.disabled = false;
         }
     },
 
@@ -45,7 +109,7 @@ export const RecordsManager = {
         const type = document.getElementById('filterType').value; 
         const tbody = document.getElementById('dataTableBody');
         
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-blue-500"><i class="fas fa-spinner fa-spin text-xl"></i></td></tr>';
         
         try {
             const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
@@ -80,62 +144,23 @@ export const RecordsManager = {
             };
 
             tbody.innerHTML = filtered.length ? filtered.map(r => `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 text-center">${r.Payment_Status !== 'Paid' ? `<input type="checkbox" value="${r.Entry_ID}" class="record-checkbox w-4 h-4 rounded text-blue-600">` : ''}</td>
-                    <td class="px-4 py-3 font-bold whitespace-nowrap">${formatDisplayDate(r.Date)}</td>
-                    <td class="px-4 py-3 text-[11px] sm:text-xs">${r.University}<br><span class="text-gray-400 font-normal">${r.Subject_Code}</span></td>
-                    <td class="px-4 py-3">
-                        <div class="font-bold">${Utils.formatCurrency(Utils.parseCurrency(r.Total_Earnings))}</div>
-                        <span class="px-2 py-0.5 rounded text-[9px] font-bold inline-block mt-0.5 ${r.Payment_Status==='Paid'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}">${r.Payment_Status}</span>
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
+                    <td class="px-2 py-2 text-center align-middle">${r.Payment_Status !== 'Paid' ? `<input type="checkbox" value="${r.Entry_ID}" class="record-checkbox w-3.5 h-3.5 rounded text-blue-600">` : ''}</td>
+                    <td class="px-2 py-2 whitespace-nowrap">
+                        <div class="font-bold text-[11px] sm:text-xs text-gray-800">${formatDisplayDate(r.Date)}</div>
+                        <div class="text-[9px] text-gray-500 mt-0.5">${r.University} - ${r.Subject_Code}</div>
                     </td>
-                    <td class="px-4 py-3 text-[10px] text-gray-400 font-normal whitespace-nowrap">${r.Date_Paid ? formatDisplayDate(r.Date_Paid) : '-'}</td>
+                    <td class="px-2 py-2 whitespace-nowrap align-top">
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold inline-block ${r.Payment_Status==='Paid'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}">${r.Payment_Status}</span>
+                        ${r.Date_Paid ? `<div class="text-[9px] text-gray-400 mt-1">${formatDisplayDate(r.Date_Paid)}</div>` : ''}
+                    </td>
+                    <td class="px-2 py-2 text-right align-middle">
+                        <div class="font-bold text-[11px] sm:text-xs text-gray-700">${Utils.formatCurrency(Utils.parseCurrency(r.Total_Earnings))}</div>
+                    </td>
                 </tr>
-            `).join('') : '<tr><td colspan="5" class="text-center py-10 text-gray-400">No records found.</td></tr>';
+            `).join('') : '<tr><td colspan="4" class="text-center py-6 text-gray-400">No records found.</td></tr>';
         } catch(e) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500 font-bold">Failed to load data.</td></tr>';
-        }
-    },
-
-    markAsPaid: async () => {
-        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
-        
-        if (checkedBoxes.length === 0) {
-            return alert("Select at least one record to mark as paid.");
-        }
-
-        const datePaid = prompt("Enter payment date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (!datePaid) return; 
-
-        const entryIds = Array.from(checkedBoxes).map(cb => cb.value);
-        const btn = document.getElementById('markPaidBtn');
-        const originalBtnHTML = btn ? btn.innerHTML : '';
-
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-            btn.disabled = true;
-        }
-
-        try {
-            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
-                action: 'update_payment',
-                entryIds: entryIds,
-                datePaid: datePaid
-            });
-            
-            if (data.status === 'success') {
-                alert(`Successfully marked ${entryIds.length} records as paid.`);
-                RecordsManager.fetchData(); 
-            } else {
-                alert("Failed to update records: " + (data.message || 'Unknown error'));
-            }
-        } catch (error) {
-            alert("An error occurred while updating the records.");
-            console.error("Payment Update Error:", error);
-        } finally {
-            if (btn) {
-                btn.innerHTML = originalBtnHTML; 
-                btn.disabled = false;
-            }
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-red-500 font-bold">Failed to load data.</td></tr>';
         }
     }
 };
