@@ -32,8 +32,8 @@ export function injectComponents() {
 
         <div id="summaryModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[80vh]">
-                <div class="flex justify-between items-center mb-4 border-b pb-2"><h2 class="font-bold text-lg sm:text-xl">Payment History</h2><button id="closeSummaryBtn" class="text-gray-400 text-xl"><i class="fas fa-times"></i></button></div>
-                <div class="overflow-x-auto w-full"><table class="w-full min-w-full text-xs sm:text-sm border"><thead class="bg-gray-50"><tr><th class="p-3 text-left">Date Paid</th><th class="p-3 text-right">Total</th></tr></thead><tbody id="summaryTableBody" class="divide-y"></tbody></table></div>
+                <div class="flex justify-between items-center mb-4 border-b pb-2"><h2 id="summaryModalTitle" class="font-bold text-lg sm:text-xl">Details</h2><button id="closeSummaryBtn" class="text-gray-400 text-xl hover:text-gray-600 transition"><i class="fas fa-times"></i></button></div>
+                <div class="overflow-y-auto w-full flex-1"><table class="w-full min-w-full text-xs sm:text-sm border"><thead class="bg-gray-50 sticky top-0"><tr><th id="summaryCol1" class="p-3 text-left">Date</th><th id="summaryCol2" class="p-3 text-right">Value</th></tr></thead><tbody id="summaryTableBody" class="divide-y"></tbody></table></div>
             </div>
         </div>
 
@@ -99,9 +99,18 @@ export function injectComponents() {
 
         <div id="viewPanel" class="app-view hidden max-w-6xl mx-auto flex-col space-y-3 sm:space-y-4 pb-24">
             <div class="grid grid-cols-3 gap-2 sm:gap-4 shrink-0">
-                <div class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-blue-500 flex flex-col justify-center"><p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Rendered</p><p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryHours">0</p></div>
-                <div class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-green-500 flex flex-col justify-center"><p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Total Paid</p><p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryPaid">₱0.00</p></div>
-                <div class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-amber-500 flex flex-col justify-center"><p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Unpaid</p><p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryUnpaid">₱0.00</p></div>
+                <div id="cardRendered" class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-blue-500 flex flex-col justify-center cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5">
+                    <p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Rendered</p>
+                    <p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryHours">0</p>
+                </div>
+                <div id="cardPaid" class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-green-500 flex flex-col justify-center cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5">
+                    <p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Total Paid</p>
+                    <p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryPaid">₱0.00</p>
+                </div>
+                <div id="cardUnpaid" class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-amber-500 flex flex-col justify-center cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5">
+                    <p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Unpaid</p>
+                    <p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryUnpaid">₱0.00</p>
+                </div>
             </div>
             <div class="bg-white p-3 rounded-xl border flex flex-col gap-3 shrink-0 shadow-sm">
                 <div class="flex gap-4 border-b">
@@ -114,9 +123,8 @@ export function injectComponents() {
                         <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Start</label><input type="date" id="filterStart" class="w-full border p-1.5 rounded text-xs outline-none"></div>
                         <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">End</label><input type="date" id="filterEnd" class="w-full border p-1.5 rounded text-xs outline-none"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                        <button id="openSummaryBtn" class="w-full bg-emerald-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-list-alt mr-1"></i> Summary</button>
-                        <button id="markPaidBtn" class="w-full bg-indigo-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-check mr-1"></i> Mark Paid</button>
+                    <div class="w-full sm:w-auto mt-2 sm:mt-0">
+                        <button id="markPaidBtn" class="w-full bg-indigo-600 text-white px-4 py-1.5 rounded text-[11px] sm:text-xs font-bold shadow hover:bg-indigo-700 transition"><i class="fas fa-check mr-1"></i> Mark Paid</button>
                     </div>
                 </div>
             </div>
