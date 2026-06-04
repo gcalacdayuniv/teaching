@@ -8,9 +8,18 @@ export const RecordsManager = {
     init: () => {
         const startInput = document.getElementById('filterStart');
         const endInput = document.getElementById('filterEnd');
+        const clearDatesBtn = document.getElementById('clearDatesBtn');
 
         if (startInput) startInput.addEventListener('change', RecordsManager.fetchData);
         if (endInput) endInput.addEventListener('change', RecordsManager.fetchData);
+        
+        if (clearDatesBtn) {
+            clearDatesBtn.addEventListener('click', () => {
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+                RecordsManager.fetchData();
+            });
+        }
 
         document.querySelectorAll('.record-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
@@ -95,7 +104,7 @@ export const RecordsManager = {
 
         const entryIds = Array.from(checkedBoxes).map(cb => cb.value);
         const btn = document.getElementById('confirmPaymentBtn');
-        const originalBtnText = btn.innerText;
+        const originalBtnHTML = btn.innerHTML;
 
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         btn.disabled = true;
@@ -119,7 +128,7 @@ export const RecordsManager = {
             alert("An error occurred while updating the records.");
             console.error("Payment Update Error:", error);
         } finally {
-            btn.innerText = originalBtnText; 
+            btn.innerHTML = originalBtnHTML; 
             btn.disabled = false;
         }
     },
@@ -239,11 +248,11 @@ export const RecordsManager = {
             tbody.innerHTML = filtered.length ? filtered.map(r => `
                 <tr class="hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
                     <td class="px-2 py-2 text-center align-middle">${r.Payment_Status !== 'Paid' ? `<input type="checkbox" value="${r.Entry_ID}" class="record-checkbox w-3.5 h-3.5 rounded text-blue-600">` : ''}</td>
-                    <td class="px-2 py-2 whitespace-nowrap">
+                    <td class="px-2 py-2 whitespace-nowrap text-left">
                         <div class="font-bold text-[11px] sm:text-xs text-gray-800">${formatDisplayDate(r.Date)}</div>
                         <div class="text-[9px] text-gray-500 mt-0.5">${r.University} - ${r.Subject_Code}</div>
                     </td>
-                    <td class="px-2 py-2 whitespace-nowrap align-top">
+                    <td class="px-2 py-2 whitespace-nowrap align-top text-center">
                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold inline-block ${r.Payment_Status==='Paid'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}">${r.Payment_Status}</span>
                         ${r.Date_Paid ? `<div class="text-[9px] text-gray-400 mt-1">${formatDisplayDate(r.Date_Paid)}</div>` : ''}
                     </td>
