@@ -1,5 +1,5 @@
 // js/finance.js
-import { API_BASE } from './globals.js';
+import { CONFIG, API, Utils } from './globals.js';
 
 export const FinanceManager = {
     recordEntries: [],
@@ -82,13 +82,7 @@ export const FinanceManager = {
 
     refreshLedger: async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/action`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_finance_ledger' })
-            });
-            const data = await response.json();
-            
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_finance_ledger' });
             if (data.status === 'success') {
                 FinanceManager.renderLedger(data.transactions, data.teachingHours);
             }
@@ -145,18 +139,18 @@ export const FinanceManager = {
                     </td>
                     <td class="px-3 py-3 text-gray-700">${r.desc}</td>
                     <td class="px-3 py-3 text-right font-bold ${colorClass}">
-                        ${sign}₱${r.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        ${sign}${Utils.formatCurrency(r.amount)}
                     </td>
                 </tr>
             `;
         });
 
         document.getElementById('financeLedgerBody').innerHTML = rows;
-        document.getElementById('finTotalIncome').innerText = `₱${totalIncome.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-        document.getElementById('finTotalExpense').innerText = `₱${totalExpense.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+        document.getElementById('finTotalIncome').innerText = Utils.formatCurrency(totalIncome);
+        document.getElementById('finTotalExpense').innerText = Utils.formatCurrency(totalExpense);
         
         const net = totalIncome - totalExpense;
-        document.getElementById('finNetBalance').innerText = `₱${net.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+        document.getElementById('finNetBalance').innerText = Utils.formatCurrency(net);
     },
 
     openRecordForm: () => {
@@ -265,13 +259,8 @@ export const FinanceManager = {
         if (records.length === 0) return;
 
         try {
-            const res = await fetch(`${API_BASE}/api/action`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'add_finance_records', records })
-            });
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'add_finance_records', records });
 
-            const data = await res.json();
             if (data.status === 'success') {
                 FinanceManager.closeRecordForm();
                 FinanceManager.refreshLedger();
