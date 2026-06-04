@@ -1,9 +1,15 @@
+// js/finance.js
 import { CONFIG, API } from './globals.js';
 
 export const FinanceManager = {
     recordEntries: [],
     currentProjectId: null,
     currentPrefillGroup: null,
+    rawData: {
+        transactions: [],
+        teachingHours: [],
+        projects: []
+    },
 
     formatMoney: (amount) => {
         return parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -71,13 +77,21 @@ export const FinanceManager = {
             </div>
 
             <div class="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col">
-                <div class="flex justify-between items-center mb-3 ml-1 shrink-0">
-                    <h3 class="font-bold text-gray-700">Ledgers & Categories</h3>
+                <div class="flex justify-between items-end mb-3 ml-1 shrink-0">
+                    <div>
+                        <h3 class="font-bold text-gray-700">Ledgers & Categories</h3>
+                        <div class="flex items-center gap-1.5 mt-2">
+                            <input type="date" id="finFilterFrom" class="w-24 sm:w-32 text-[10px] sm:text-xs px-1.5 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-600 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
+                            <span class="text-[10px] text-gray-400 font-medium">to</span>
+                            <input type="date" id="finFilterTo" class="w-24 sm:w-32 text-[10px] sm:text-xs px-1.5 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-600 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
+                            <button onclick="FinanceManager.resetFilter()" class="text-[10px] bg-white border border-gray-300 hover:bg-gray-100 text-gray-600 px-2 py-1 rounded transition shadow-sm"><i class="fas fa-undo"></i></button>
+                        </div>
+                    </div>
                     <div class="flex gap-2">
-                        <button onclick="FinanceManager.openNewProjectModal()" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-indigo-200 shadow-sm">
+                        <button onclick="FinanceManager.openNewProjectModal()" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 border border-indigo-200 shadow-sm">
                             <i class="fas fa-folder-plus"></i> <span class="hidden sm:inline">New Project</span>
                         </button>
-                        <button onclick="FinanceManager.openRecordForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
+                        <button onclick="FinanceManager.openRecordForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
                             <i class="fas fa-plus"></i> <span class="hidden sm:inline">Log Txn</span>
                         </button>
                     </div>
@@ -161,61 +175,77 @@ export const FinanceManager = {
             ]);
 
             if (ledgerRes.status === 'success' && projRes.status === 'success') {
-                FinanceManager.renderCards(ledgerRes.transactions, ledgerRes.teachingHours, projRes.projects);
+                FinanceManager.rawData = {
+                    transactions: ledgerRes.transactions,
+                    teachingHours: ledgerRes.teachingHours,
+                    projects: projRes.projects
+                };
+                FinanceManager.applyFilter();
             }
         } catch (err) {
             console.error("Failed to load finance data:", err);
         }
     },
 
+    resetFilter: () => {
+        document.getElementById('finFilterFrom').value = '';
+        document.getElementById('finFilterTo').value = '';
+        FinanceManager.applyFilter();
+    },
+
+    applyFilter: () => {
+        const fromStr = document.getElementById('finFilterFrom').value;
+        const toStr = document.getElementById('finFilterTo').value;
+        const fromDate = fromStr ? new Date(fromStr) : null;
+        const toDate = toStr ? new Date(toStr) : null;
+
+        const dateFilter = (dateString) => {
+            if (!fromDate && !toDate) return true;
+            const d = new Date(dateString);
+            d.setHours(0,0,0,0);
+            if (fromDate && d < fromDate) return false;
+            if (toDate && d > toDate) return false;
+            return true;
+        };
+
+        const filteredTx = FinanceManager.rawData.transactions.filter(t => dateFilter(t.Date));
+        const filteredTh = FinanceManager.rawData.teachingHours.filter(th => dateFilter(th.Date_Paid || th.Date));
+
+        FinanceManager.renderCards(filteredTx, filteredTh, FinanceManager.rawData.projects);
+    },
+
     renderCards: (transactions, teachingHours, projects) => {
         let globalIncome = 0;
         let globalExpense = 0;
-
-        const groups = {}; 
+        const root = {}; 
         const lists = { MainGroup: new Set(), SubGroup1: new Set(), SubGroup2: new Set(), SubGroup3: new Set(), SubGroup4: new Set(), SubGroup5: new Set() };
         
-        // 1. Initialize Project Groups with nested subGroups
+        // Ensure root structure for all known projects (even if empty)
         projects.forEach(p => {
-            groups[`proj_${p.Project_ID}`] = {
-                title: p.Name, type: 'project', id: p.Project_ID, income: 0, expense: 0, subGroups: {}
+            root[`proj_${p.Project_ID}`] = {
+                key: `proj_${p.Project_ID}`, title: p.Name, type: 'project', id: p.Project_ID, fullId: `proj_${p.Project_ID}`,
+                income: 0, expense: 0, records: [], children: {}
             };
         });
 
-        // 2. Map Teaching Hours to Earnings -> Teaching Sub-group
-        const groupedTeaching = {};
+        // Map Teaching Hours
         teachingHours.forEach(th => {
             const date = th.Date_Paid || th.Date;
-            if (!groupedTeaching[date]) {
-                groupedTeaching[date] = {
-                    date: date, type: 'Income', group: 'Earnings',
-                    subGroup1: 'Teaching', subGroup2: '', subGroup3: '', subGroup4: '', subGroup5: '',
-                    desc: 'Teaching Earnings (Aggregated)', amount: 0, projectId: null, attachment: null
-                };
-            }
-            groupedTeaching[date].amount += parseFloat(th.Total_Earnings);
-        });
-
-        if (Object.keys(groupedTeaching).length > 0 && !groups['group_Earnings']) {
-            groups['group_Earnings'] = { title: 'Earnings', type: 'group', id: 'Earnings', income: 0, expense: 0, subGroups: {} };
-        }
-
-        Object.values(groupedTeaching).forEach(gt => {
-            if (!groups['group_Earnings'].subGroups['Teaching']) {
-                groups['group_Earnings'].subGroups['Teaching'] = { income: 0, expense: 0, records: [] };
-            }
-            groups['group_Earnings'].subGroups['Teaching'].records.push(gt);
-            groups['group_Earnings'].subGroups['Teaching'].income += gt.amount;
-            groups['group_Earnings'].income += gt.amount;
-            globalIncome += gt.amount;
+            const record = {
+                date: date, type: 'Income', group: 'Earnings',
+                subGroup1: 'Teaching', subGroup2: '', subGroup3: '', subGroup4: '', subGroup5: '',
+                desc: `${th.University} - ${th.Subject_Code}`, amount: parseFloat(th.Total_Earnings), projectId: null, attachment: null
+            };
             lists.MainGroup.add('Earnings');
             lists.SubGroup1.add('Teaching');
+            FinanceManager.insertIntoTree(root, record, projects);
+            globalIncome += record.amount;
         });
 
-        // 3. Process Standard Transactions into Sub-groups
+        // Map Standard Transactions
         transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
-            const r = {
+            const record = {
                 date: t.Date, type: t.Type, group: t.Main_Group,
                 subGroup1: t.Sub_Group_1, subGroup2: t.Sub_Group_2, subGroup3: t.Sub_Group_3, subGroup4: t.Sub_Group_4, subGroup5: t.Sub_Group_5,
                 desc: t.Description, amount: amt, projectId: t.Project_ID, attachment: t.Attachment
@@ -231,125 +261,131 @@ export const FinanceManager = {
             if (t.Type === 'Income') globalIncome += amt;
             else globalExpense += amt;
 
-            let groupKey = t.Project_ID ? `proj_${t.Project_ID}` : `group_${t.Main_Group}`;
-            
-            if (!groups[groupKey]) {
-                groups[groupKey] = {
-                    title: t.Project_ID ? 'Unknown Project' : t.Main_Group,
-                    type: t.Project_ID ? 'project' : 'group', id: t.Project_ID || t.Main_Group,
-                    income: 0, expense: 0, subGroups: {}
-                };
-            }
-
-            const subKey = r.subGroup1 || 'General';
-            if (!groups[groupKey].subGroups[subKey]) {
-                groups[groupKey].subGroups[subKey] = { income: 0, expense: 0, records: [] };
-            }
-
-            groups[groupKey].subGroups[subKey].records.push(r);
-            if (t.Type === 'Income') {
-                groups[groupKey].income += amt;
-                groups[groupKey].subGroups[subKey].income += amt;
-            } else {
-                groups[groupKey].expense += amt;
-                groups[groupKey].subGroups[subKey].expense += amt;
-            }
+            FinanceManager.insertIntoTree(root, record, projects);
         });
 
-        // Update Global UI
+        // Update Overview Totals
         document.getElementById('finTotalIncome').innerText = `₱${FinanceManager.formatMoney(globalIncome)}`;
         document.getElementById('finTotalExpense').innerText = `₱${FinanceManager.formatMoney(globalExpense)}`;
         document.getElementById('finNetBalance').innerText = `₱${FinanceManager.formatMoney(globalIncome - globalExpense)}`;
 
+        // Populate Datalists
         Object.keys(lists).forEach(k => {
             const dl = document.getElementById(`dl_${k}`);
             if (dl) dl.innerHTML = Array.from(lists[k]).map(v => `<option value="${v}">`).join('');
         });
 
-        // 4. Render Nested HTML Cards
-        let cardsHtml = '';
-        Object.keys(groups).sort().forEach((key, gIdx) => {
-            const g = groups[key];
-            const net = g.income - g.expense;
-            const netColor = net >= 0 ? 'text-green-600' : 'text-red-600';
-            const icon = g.type === 'project' ? '<i class="fas fa-folder-open"></i>' : '<i class="fas fa-layer-group"></i>';
-            const badge = g.type === 'project' ? `<span class="bg-indigo-100 text-indigo-800 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ml-2 border border-indigo-200">Project</span>` : '';
+        // Build HTML recursively
+        let html = '';
+        Object.keys(root).sort((a,b) => root[a].title.localeCompare(root[b].title)).forEach(key => {
+            html += FinanceManager.buildNodeHtml(root[key], 0);
+        });
 
-            let totalRecords = 0;
-            let subGroupsHtml = '';
+        document.getElementById('financeGroupsContainer').innerHTML = html || `<p class="text-center text-gray-400 text-sm italic mt-8">No records match this date range.</p>`;
+    },
 
-            // Generate HTML for each Sub-category (Nested Accordion)
-            Object.keys(g.subGroups).sort().forEach((subKey, sIdx) => {
-                const sg = g.subGroups[subKey];
-                totalRecords += sg.records.length;
-                sg.records.sort((a, b) => new Date(b.date) - new Date(a.date));
+    insertIntoTree: (root, record, projects) => {
+        let path = [];
+        
+        if (record.projectId) {
+            const p = projects.find(x => x.Project_ID === record.projectId);
+            path.push({ key: `proj_${record.projectId}`, title: p ? p.Name : 'Unknown Project', type: 'project', id: record.projectId });
+        } else {
+            path.push({ key: `group_${record.group}`, title: record.group, type: 'group', id: record.group });
+        }
 
-                const sgNet = sg.income - sg.expense;
-                const sgNetColor = sgNet >= 0 ? 'text-green-600' : 'text-red-600';
-                const uniqueSubId = `sub-${gIdx}-${sIdx}`;
-
-                let rowsHtml = '';
-                sg.records.forEach(r => {
-                    const isIncome = r.type === 'Income';
-                    const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
-                    const sign = isIncome ? '+' : '-';
-                    const extraSubsArr = [r.subGroup2, r.subGroup3, r.subGroup4, r.subGroup5].filter(Boolean);
-                    const extraSubsHtml = extraSubsArr.length > 0 ? `<span class="text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded mt-1 inline-block border border-gray-200 mr-1">${extraSubsArr.join(' / ')}</span>` : '';
-                    const attachBtn = r.attachment ? `<button onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> Image</button>` : '';
-
-                    rowsHtml += `
-                    <tr class="border-b border-gray-100 hover:bg-blue-50/50 transition">
-                        <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500 align-top pt-3">${r.date}</td>
-                        <td class="px-3 py-2 align-top pt-2.5">
-                            <span class="font-semibold text-gray-700 block text-sm leading-tight">${r.desc}</span>
-                            ${extraSubsHtml} ${attachBtn}
-                        </td>
-                        <td class="px-3 py-2 text-right font-bold ${colorClass} whitespace-nowrap align-top pt-3">
-                            ${sign}₱${FinanceManager.formatMoney(r.amount)}
-                        </td>
-                    </tr>`;
-                });
-
-                subGroupsHtml += `
-                <div class="border-t border-gray-100 bg-white">
-                    <div class="p-3 bg-gray-50/30 hover:bg-gray-100/80 transition flex justify-between items-center cursor-pointer select-none pl-6" onclick="FinanceManager.toggleElement('${uniqueSubId}')">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-xs"></i>
-                            <h4 class="font-bold text-gray-700 text-sm">${subKey}</h4>
-                            <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 rounded">${sg.records.length}</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-bold ${sgNetColor}">₱${FinanceManager.formatMoney(sgNet)}</span>
-                            <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300" id="icon-${uniqueSubId}"></i>
-                        </div>
-                    </div>
-                    <div class="hidden flex-col bg-white overflow-hidden" id="body-${uniqueSubId}">
-                        <div class="overflow-x-auto pl-4">
-                            <table class="w-full text-left text-gray-600">
-                                <tbody>
-                                    ${rowsHtml}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>`;
-            });
-
-            if (totalRecords === 0) {
-                subGroupsHtml = `<div class="p-4 text-center text-gray-400 italic text-sm border-t border-gray-100">No transactions yet.</div>`;
+        const subs = [record.subGroup1, record.subGroup2, record.subGroup3, record.subGroup4, record.subGroup5];
+        for (let sub of subs) {
+            if (sub && sub.trim() !== '') {
+                path.push({ key: `sub_${sub}`, title: sub, type: 'sub' });
             }
+        }
 
-            // Main Category Card
-            cardsHtml += `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-gray-50/80 hover:bg-gray-100 transition flex justify-between items-center cursor-pointer select-none" onclick="FinanceManager.toggleElement('${key}')">
+        let currentLevel = root;
+        path.forEach((pItem, index) => {
+            if (!currentLevel[pItem.key]) {
+                currentLevel[pItem.key] = {
+                    key: pItem.key,
+                    title: pItem.title,
+                    type: pItem.type,
+                    id: pItem.id || pItem.title,
+                    fullId: path.slice(0, index+1).map(x => x.key).join('-').replace(/[^a-zA-Z0-9_-]/g, ''),
+                    income: 0,
+                    expense: 0,
+                    records: [],
+                    children: {}
+                };
+            }
+            
+            const node = currentLevel[pItem.key];
+            if (record.type === 'Income') node.income += record.amount;
+            else node.expense += record.amount;
+            
+            // If it's the last element in the hierarchy path, push the record here
+            if (index === path.length - 1) {
+                node.records.push(record);
+            }
+            
+            currentLevel = node.children;
+        });
+    },
+
+    buildNodeHtml: (node, level) => {
+        let html = '';
+        const net = node.income - node.expense;
+        const netColor = net >= 0 ? 'text-green-600' : 'text-red-600';
+        
+        let recordsHtml = '';
+        if (node.records.length > 0) {
+            // Sort Old to New
+            node.records.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            let rowsHtml = node.records.map(r => {
+                const isIncome = r.type === 'Income';
+                const sign = isIncome ? '+' : '-';
+                const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
+                const attachBtn = r.attachment ? `<button onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> Image</button>` : '';
+
+                return `
+                <tr class="border-b border-gray-50 hover:bg-blue-50/50 transition">
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500 align-top pt-3 w-20">${r.date}</td>
+                    <td class="px-3 py-2 align-top pt-2.5">
+                        <span class="font-semibold text-gray-700 block text-sm leading-tight">${r.desc}</span>
+                        ${attachBtn}
+                    </td>
+                    <td class="px-3 py-2 text-right font-bold ${colorClass} whitespace-nowrap align-top pt-3 w-24">
+                        ${sign}₱${FinanceManager.formatMoney(r.amount)}
+                    </td>
+                </tr>`;
+            }).join('');
+            
+            recordsHtml = `
+            <div class="overflow-x-auto ${level > 0 ? '' : 'px-1'}">
+                <table class="w-full text-left text-gray-600">
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>`;
+        }
+
+        let childrenHtml = '';
+        Object.keys(node.children).sort().forEach(childKey => {
+            childrenHtml += FinanceManager.buildNodeHtml(node.children[childKey], level + 1);
+        });
+
+        if (level === 0) {
+            // Level 0: Main Card (Project or Main Group)
+            const icon = node.type === 'project' ? '<i class="fas fa-folder-open"></i>' : '<i class="fas fa-layer-group"></i>';
+            const badge = node.type === 'project' ? `<span class="bg-indigo-100 text-indigo-800 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ml-2 border border-indigo-200">Project</span>` : '';
+            
+            html += `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-3">
+                <div class="p-4 bg-gray-50/80 hover:bg-gray-100 transition flex justify-between items-center cursor-pointer select-none" onclick="FinanceManager.toggleElement('${node.fullId}')">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full ${g.type === 'project' ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center shrink-0 shadow-sm border border-white">
+                        <div class="w-10 h-10 rounded-full ${node.type === 'project' ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center shrink-0 shadow-sm border border-white">
                             ${icon}
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-800 leading-tight">${g.title} ${badge}</h3>
-                            <p class="text-[11px] text-gray-500 font-medium mt-0.5">${totalRecords} Total Records</p>
+                            <h3 class="font-bold text-gray-800 leading-tight">${node.title} ${badge}</h3>
                         </div>
                     </div>
                     <div class="text-right flex items-center gap-3 sm:gap-4">
@@ -357,29 +393,49 @@ export const FinanceManager = {
                             <p class="text-[9px] text-gray-400 uppercase font-bold hidden sm:block">Net Position</p>
                             <p class="text-sm font-bold ${netColor}">₱${FinanceManager.formatMoney(net)}</p>
                         </div>
-                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300" id="icon-${key}"></i>
+                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300" id="icon-${node.fullId}"></i>
                     </div>
                 </div>
                 
-                <div class="hidden flex-col bg-white" id="body-${key}">
+                <div class="hidden flex-col bg-white" id="body-${node.fullId}">
                     <div class="p-3 bg-gray-50 flex justify-between items-center border-t border-b border-gray-200 shadow-inner">
                         <div class="flex gap-4">
-                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Income</span><span class="text-sm font-bold text-green-600">₱${FinanceManager.formatMoney(g.income)}</span></div>
-                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Expense</span><span class="text-sm font-bold text-red-600">₱${FinanceManager.formatMoney(g.expense)}</span></div>
+                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Income</span><span class="text-sm font-bold text-green-600">₱${FinanceManager.formatMoney(node.income)}</span></div>
+                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Expense</span><span class="text-sm font-bold text-red-600">₱${FinanceManager.formatMoney(node.expense)}</span></div>
                         </div>
-                        <button onclick="FinanceManager.openRecordForm('${g.type === 'project' ? g.id : ''}', '${g.title}', '${g.type === 'group' ? g.id : ''}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Add to ${g.type === 'project' ? 'Project' : 'Group'}</span>
+                        <button onclick="FinanceManager.openRecordForm('${node.type === 'project' ? node.id : ''}', '${node.title}', '${node.type === 'group' ? node.id : ''}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Add</span>
                         </button>
                     </div>
-                    
-                    ${subGroupsHtml}
-                    
+                    ${recordsHtml}
+                    ${childrenHtml}
                 </div>
-            </div>
-            `;
-        });
+            </div>`;
+        } else {
+            // Level 1-5: Nested Sub Categories
+            const paddingBase = 1.25; 
+            const paddingIndent = level * 1; 
+            const paddingLeft = paddingBase + paddingIndent;
 
-        document.getElementById('financeGroupsContainer').innerHTML = cardsHtml;
+            html += `
+            <div class="border-t border-gray-100 bg-white">
+                <div class="p-2.5 bg-gray-50/40 hover:bg-gray-100 transition flex justify-between items-center cursor-pointer select-none" style="padding-left: ${paddingLeft}rem;" onclick="FinanceManager.toggleElement('${node.fullId}')">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px]"></i>
+                        <h4 class="font-bold text-gray-700 text-sm">${node.title}</h4>
+                    </div>
+                    <div class="flex items-center gap-3 pr-2">
+                        <span class="text-[11px] font-bold ${netColor}">₱${FinanceManager.formatMoney(net)}</span>
+                        <i class="fas fa-chevron-down text-gray-300 text-[10px] transition-transform duration-300" id="icon-${node.fullId}"></i>
+                    </div>
+                </div>
+                <div class="hidden flex-col bg-white overflow-hidden border-t border-gray-50" id="body-${node.fullId}">
+                    ${recordsHtml}
+                    ${childrenHtml}
+                </div>
+            </div>`;
+        }
+        return html;
     },
 
     toggleElement: (key) => {
@@ -476,16 +532,16 @@ export const FinanceManager = {
             <input type="text" id="finGroup_${idx}" list="dl_MainGroup" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mt-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Main Group (e.g., Personal, Earnings)" ${groupValue} required>
             
             <div class="grid grid-cols-5 gap-2 mt-3">
-                <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 1">
-                <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 2">
-                <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 3">
-                <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 4">
-                <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 5">
+                <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 1">
+                <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 2">
+                <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 3">
+                <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 4">
+                <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 5">
             </div>
             
-            <div class="mt-3 bg-white p-2 border border-gray-300 rounded-lg flex items-center justify-between">
-                <label for="finFile_${idx}" class="text-sm font-medium text-gray-600 cursor-pointer flex-1"><i class="fas fa-camera mr-2"></i> Attach Receipt/Image</label>
-                <input type="file" id="finFile_${idx}" accept="image/*" class="text-xs text-gray-500 w-full max-w-[180px]">
+            <div class="mt-3 bg-white p-2 border border-gray-300 rounded-lg flex items-center justify-between overflow-hidden">
+                <label for="finFile_${idx}" class="text-xs font-medium text-gray-600 cursor-pointer flex-1 whitespace-nowrap"><i class="fas fa-camera mr-2"></i> Attach Image</label>
+                <input type="file" id="finFile_${idx}" accept="image/*" class="text-[10px] text-gray-500 w-full max-w-[140px]">
             </div>
 
             <input type="text" id="finDesc_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mt-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Description" required>
