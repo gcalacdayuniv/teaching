@@ -1,4 +1,3 @@
-// js/finance.js
 import { CONFIG, API, Utils } from './globals.js';
 
 export const FinanceManager = {
@@ -39,7 +38,7 @@ export const FinanceManager = {
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
                             <tr>
                                 <th class="px-3 py-2">Date</th>
-                                <th class="px-3 py-2">Category</th>
+                                <th class="px-3 py-2">Groupings</th>
                                 <th class="px-3 py-2">Desc</th>
                                 <th class="px-3 py-2 text-right">Amount</th>
                             </tr>
@@ -70,6 +69,13 @@ export const FinanceManager = {
                 </div>
             </div>
         </div>
+
+        <datalist id="dl_MainGroup"></datalist>
+        <datalist id="dl_SubGroup1"></datalist>
+        <datalist id="dl_SubGroup2"></datalist>
+        <datalist id="dl_SubGroup3"></datalist>
+        <datalist id="dl_SubGroup4"></datalist>
+        <datalist id="dl_SubGroup5"></datalist>
         `;
         
         mainView.insertAdjacentHTML('beforeend', financeHtml);
@@ -95,29 +101,56 @@ export const FinanceManager = {
         let totalIncome = 0;
         let totalExpense = 0;
         let rows = "";
-
         const allRecords = [];
+
+        const lists = { MainGroup: new Set(), SubGroup1: new Set(), SubGroup2: new Set(), SubGroup3: new Set(), SubGroup4: new Set(), SubGroup5: new Set() };
         
         transactions.forEach(t => {
+            if (t.Main_Group) lists.MainGroup.add(t.Main_Group);
+            if (t.Sub_Group_1) lists.SubGroup1.add(t.Sub_Group_1);
+            if (t.Sub_Group_2) lists.SubGroup2.add(t.Sub_Group_2);
+            if (t.Sub_Group_3) lists.SubGroup3.add(t.Sub_Group_3);
+            if (t.Sub_Group_4) lists.SubGroup4.add(t.Sub_Group_4);
+            if (t.Sub_Group_5) lists.SubGroup5.add(t.Sub_Group_5);
+
             allRecords.push({
                 date: t.Date,
                 type: t.Type,
                 group: t.Main_Group,
-                subGroup: t.Sub_Group,
+                subGroup1: t.Sub_Group_1,
+                subGroup2: t.Sub_Group_2,
+                subGroup3: t.Sub_Group_3,
+                subGroup4: t.Sub_Group_4,
+                subGroup5: t.Sub_Group_5,
                 desc: t.Description,
                 amount: parseFloat(t.Amount)
             });
         });
 
+        // Group Teaching Earnings by Paid Date
+        const groupedTeaching = {};
         teachingHours.forEach(th => {
-            allRecords.push({
-                date: th.Date_Paid || th.Date,
-                type: 'Income',
-                group: 'Earnings',
-                subGroup: 'Teaching',
-                desc: `${th.University} - ${th.Subject_Code}`,
-                amount: parseFloat(th.Total_Earnings)
-            });
+            const date = th.Date_Paid || th.Date;
+            if (!groupedTeaching[date]) {
+                groupedTeaching[date] = {
+                    date: date,
+                    type: 'Income',
+                    group: 'Earnings',
+                    subGroup1: 'Teaching',
+                    subGroup2: '', subGroup3: '', subGroup4: '', subGroup5: '',
+                    desc: 'Teaching Earnings (Aggregated)',
+                    amount: 0
+                };
+            }
+            groupedTeaching[date].amount += parseFloat(th.Total_Earnings);
+        });
+        
+        Object.values(groupedTeaching).forEach(gt => allRecords.push(gt));
+
+        // Populate Datalists for options
+        Object.keys(lists).forEach(k => {
+            const dl = document.getElementById(`dl_${k}`);
+            if (dl) dl.innerHTML = Array.from(lists[k]).map(v => `<option value="${v}">`).join('');
         });
 
         allRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -130,12 +163,15 @@ export const FinanceManager = {
             const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
             const sign = isIncome ? '+' : '-';
 
+            const subGroupsArr = [r.subGroup1, r.subGroup2, r.subGroup3, r.subGroup4, r.subGroup5].filter(Boolean);
+            const subGroupsHtml = subGroupsArr.length > 0 ? `<span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded mt-1 inline-block">${subGroupsArr.join(' / ')}</span>` : '';
+
             rows += `
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="px-3 py-3 whitespace-nowrap">${r.date}</td>
                     <td class="px-3 py-3 whitespace-nowrap">
                         <span class="font-medium block">${r.group}</span>
-                        <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">${r.subGroup}</span>
+                        ${subGroupsHtml}
                     </td>
                     <td class="px-3 py-3 text-gray-700">${r.desc}</td>
                     <td class="px-3 py-3 text-right font-bold ${colorClass}">
@@ -171,7 +207,7 @@ export const FinanceManager = {
         const container = document.getElementById('financeEntriesContainer');
         const div = document.createElement('div');
         div.id = `fin-entry-${idx}`;
-        div.className = 'fin-entry bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3 relative';
+        div.className = 'fin-entry bg-gray-50 border border-gray-200 rounded-xl p-4 relative';
 
         const today = new Date().toISOString().split('T')[0];
 
@@ -180,58 +216,30 @@ export const FinanceManager = {
             
             <div class="grid grid-cols-2 gap-3">
                 <input type="date" id="finDate_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" value="${today}" required>
-                <select id="finType_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" onchange="FinanceManager.updateGroups(${idx})" required>
+                <select id="finType_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" required>
                     <option value="Expense">Expense</option>
                     <option value="Income">Income</option>
                 </select>
             </div>
             
-            <div class="grid grid-cols-2 gap-3">
-                <select id="finGroup_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" required></select>
-                <select id="finSubGroup_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" required></select>
+            <input type="text" id="finGroup_${idx}" list="dl_MainGroup" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mt-3" placeholder="Main Group (e.g., Personal, Earnings)" required>
+            
+            <div class="grid grid-cols-5 gap-2 mt-3">
+                <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs" placeholder="Sub 1">
+                <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs" placeholder="Sub 2">
+                <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs" placeholder="Sub 3">
+                <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs" placeholder="Sub 4">
+                <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="w-full px-2 py-2 rounded-lg border border-gray-300 text-xs" placeholder="Sub 5">
             </div>
             
-            <input type="text" id="finDesc_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" placeholder="Description" required>
+            <input type="text" id="finDesc_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mt-3" placeholder="Description" required>
             
-            <div class="relative">
+            <div class="relative mt-3">
                 <span class="absolute left-3 top-2.5 text-gray-500 font-medium">₱</span>
                 <input type="number" id="finAmt_${idx}" class="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-300 text-sm font-bold" placeholder="0.00" step="0.01" required>
             </div>
         `;
         container.appendChild(div);
-        FinanceManager.updateGroups(idx);
-    },
-
-    updateGroups: (idx) => {
-        const type = document.getElementById(`finType_${idx}`).value;
-        const groupSel = document.getElementById(`finGroup_${idx}`);
-        const subGroupSel = document.getElementById(`finSubGroup_${idx}`);
-        
-        if (type === 'Expense') {
-            groupSel.innerHTML = `
-                <option value="Personal">Personal</option>
-                <option value="Home">Home</option>
-            `;
-            subGroupSel.innerHTML = `
-                <option value="Food">Food</option>
-                <option value="Things">Things</option>
-                <option value="Travel">Travel</option>
-                <option value="Medicine">Medicine</option>
-                <option value="Others">Others</option>
-            `;
-        } else {
-            groupSel.innerHTML = `
-                <option value="Earnings">Earnings</option>
-                <option value="Other">Other</option>
-            `;
-            subGroupSel.innerHTML = `
-                <option value="Teaching">Teaching</option>
-                <option value="Freelance">Freelance</option>
-                <option value="Business">Business</option>
-                <option value="Allowance">Allowance</option>
-                <option value="Others">Others</option>
-            `;
-        }
     },
 
     submitRecords: async (e) => {
@@ -247,13 +255,17 @@ export const FinanceManager = {
             const date = document.getElementById(`finDate_${idx}`)?.value;
             const type = document.getElementById(`finType_${idx}`)?.value;
             const group = document.getElementById(`finGroup_${idx}`)?.value;
-            const subGroup = document.getElementById(`finSubGroup_${idx}`)?.value;
+            const subGroup1 = document.getElementById(`finSubGroup1_${idx}`)?.value;
+            const subGroup2 = document.getElementById(`finSubGroup2_${idx}`)?.value;
+            const subGroup3 = document.getElementById(`finSubGroup3_${idx}`)?.value;
+            const subGroup4 = document.getElementById(`finSubGroup4_${idx}`)?.value;
+            const subGroup5 = document.getElementById(`finSubGroup5_${idx}`)?.value;
             const desc = document.getElementById(`finDesc_${idx}`)?.value;
             const amt = document.getElementById(`finAmt_${idx}`)?.value;
 
             if (!date || !type || !desc || !amt) continue;
 
-            records.push({ date, type, group, subGroup, description: desc, amount: amt });
+            records.push({ date, type, group, subGroup1, subGroup2, subGroup3, subGroup4, subGroup5, description: desc, amount: amt });
         }
 
         if (records.length === 0) return;
