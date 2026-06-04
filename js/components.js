@@ -103,16 +103,21 @@ export function injectComponents() {
                 <div class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-green-500 flex flex-col justify-center"><p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Total Paid</p><p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryPaid">₱0.00</p></div>
                 <div class="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-l-4 border-l-amber-500 flex flex-col justify-center"><p class="text-[9px] sm:text-xs font-bold text-gray-500 uppercase truncate">Unpaid</p><p class="text-sm sm:text-2xl font-bold text-gray-800 truncate" id="summaryUnpaid">₱0.00</p></div>
             </div>
-            <div class="bg-white p-3 rounded-xl border flex flex-col sm:flex-row gap-3 justify-between items-end shrink-0 shadow-sm">
-                <div class="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto items-end">
-                    <div class="col-span-2 sm:col-span-1"><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Filter Type</label><select id="filterType" class="w-full border p-1.5 rounded text-xs bg-gray-50 outline-none"><option value="Rendered">Rendered</option><option value="Paid">Paid</option></select></div>
-                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Start</label><input type="date" id="filterStart" class="w-full border p-1.5 rounded text-xs outline-none"></div>
-                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">End</label><input type="date" id="filterEnd" class="w-full border p-1.5 rounded text-xs outline-none"></div>
-                    <button id="fetchRecordsBtn" class="col-span-2 sm:col-span-1 bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold mt-1"><i class="fas fa-sync-alt mr-1"></i> Fetch</button>
+            <div class="bg-white p-3 rounded-xl border flex flex-col gap-3 shrink-0 shadow-sm">
+                <div class="flex gap-4 border-b">
+                    <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-blue-600 text-blue-600 outline-none" data-type="Rendered">Rendered</button>
+                    <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 outline-none" data-type="Paid">Paid</button>
+                    <input type="hidden" id="filterType" value="Rendered">
                 </div>
-                <div class="grid grid-cols-2 gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                    <button id="openSummaryBtn" class="w-full bg-emerald-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-list-alt mr-1"></i> Summary</button>
-                    <button id="markPaidBtn" class="w-full bg-indigo-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-check mr-1"></i> Mark Paid</button>
+                <div class="flex flex-col sm:flex-row justify-between items-end gap-3">
+                    <div class="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto items-end">
+                        <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">Start</label><input type="date" id="filterStart" class="w-full border p-1.5 rounded text-xs outline-none"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-0.5">End</label><input type="date" id="filterEnd" class="w-full border p-1.5 rounded text-xs outline-none"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                        <button id="openSummaryBtn" class="w-full bg-emerald-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-list-alt mr-1"></i> Summary</button>
+                        <button id="markPaidBtn" class="w-full bg-indigo-600 text-white px-3 py-1.5 rounded text-[11px] sm:text-xs font-bold"><i class="fas fa-check mr-1"></i> Mark Paid</button>
+                    </div>
                 </div>
             </div>
             <div class="bg-white border rounded-xl shadow-sm w-full overflow-x-auto">
