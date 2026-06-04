@@ -1,3 +1,4 @@
+// js/router.js
 import { initResources } from './resources.js';
 
 export const AppRouter = {
@@ -22,6 +23,7 @@ export const AppRouter = {
             '#/welcome': 'welcomePanel',
             '#/log': 'logPanel',
             '#/records': 'viewPanel',
+            '#/finance': 'financePanel',
             '#/resources': 'resourcePanel',
             '#/profile': 'profilePanel'
         };
@@ -31,13 +33,17 @@ export const AppRouter = {
         
         if (targetElement) {
             targetElement.classList.remove('hidden');
-            if (targetId === 'viewPanel' || targetId === 'welcomePanel') {
+            if (targetId === 'viewPanel' || targetId === 'welcomePanel' || targetId === 'financePanel') {
                 targetElement.classList.add('flex');
             }
         }
 
         if (targetId === 'resourcePanel') {
             initResources(); 
+        }
+        
+        if (targetId === 'financePanel' && window.FinanceManager) {
+            window.FinanceManager.refreshLedger();
         }
     }
 };
