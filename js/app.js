@@ -58,6 +58,10 @@ function setupUI() {
         if (menu.classList.contains('translate-x-full')) {
             menu.classList.remove('translate-x-full');
             backdrop.classList.remove('hidden');
+            // Sync avatar in case AuthManager missed it
+            if(window.ProfileManager && window.ProfileManager.syncUI) {
+                window.ProfileManager.syncUI();
+            }
         } else {
             menu.classList.add('translate-x-full');
             backdrop.classList.add('hidden');
@@ -79,6 +83,11 @@ function setupUI() {
             fabMenu.classList.add('hidden');
             fabMenu.classList.remove('flex');
             if (fabIcon) fabIcon.style.transform = 'rotate(0deg)';
+        }
+        
+        // Make sure all profile modals close when navigating away or closing menus
+        if (window.closeProfileModals) {
+            window.closeProfileModals();
         }
     };
 
@@ -106,7 +115,7 @@ function setupUI() {
             }
         });
         
-        // Ensure FAB closes when navigating
+        // Ensure FAB and modals close when navigating
         window.closeAllMenus();
     });
 }
