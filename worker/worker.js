@@ -168,8 +168,8 @@ export default {
         if (body.action === 'add_finance_records') {
           const stmt = env.DB.prepare(`
             INSERT INTO Finance_Transactions 
-            (Transaction_ID, Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount, Project_ID) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (Transaction_ID, Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount, Project_ID, Attachment) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `);
 
           const batchList = body.records.map(record => {
@@ -177,7 +177,7 @@ export default {
             return stmt.bind(
               transId, record.date, record.type, record.group, 
               record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
-              record.description, record.amount, record.projectId || null
+              record.description, record.amount, record.projectId || null, record.attachment || null
             );
           });
 
