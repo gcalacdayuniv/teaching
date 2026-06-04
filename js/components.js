@@ -65,8 +65,26 @@ export function injectComponents() {
                         <input type="url" id="resourceUrl" class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="flex justify-end gap-2 mt-5">
-                        <button type="button" onclick="document.getElementById('resourceModal').classList.add('hidden')" id="cancelResourceBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
+                        <button type="button" onclick="document.getElementById('resourceModal').classList.add('hidden'); document.getElementById('resourceModal').classList.remove('flex');" id="cancelResourceBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Save Link</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="deleteResourceModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
+                <h2 class="text-lg font-bold mb-4 text-gray-800"><i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>Delete Resource</h2>
+                <p class="text-xs text-gray-600 mb-4">Are you sure you want to remove this link? Please confirm with your password.</p>
+                <form id="deleteResourceForm" class="space-y-3">
+                    <input type="hidden" id="deleteResourceId">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Confirm Password</label>
+                        <input type="password" id="deleteResourcePassword" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <div class="flex justify-end gap-2 mt-5">
+                        <button type="button" onclick="document.getElementById('deleteResourceModal').classList.add('hidden'); document.getElementById('deleteResourceModal').classList.remove('flex');" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
+                        <button type="submit" id="deleteResourceBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold shadow hover:bg-red-700 transition">Delete</button>
                     </div>
                 </form>
             </div>
