@@ -28,8 +28,13 @@ export const ProfileManager = {
         if (State.currentUser) {
             const mAvatar = document.getElementById('menuAvatar');
             const mName = document.getElementById('menuName');
+            const mEmail = document.getElementById('menuEmail');
+            const mContact = document.getElementById('menuContact');
+            
             if(mAvatar) mAvatar.src = State.currentUser.avatar || '';
             if(mName) mName.innerText = State.currentUser.name || State.currentUser.username || 'User';
+            if(mEmail) mEmail.innerText = State.currentUser.email || 'No email provided';
+            if(mContact) mContact.innerText = State.currentUser.contact || 'No contact provided';
         }
     },
 
@@ -125,7 +130,8 @@ export const ProfileManager = {
                 State.currentUser.email = payload.email;
                 State.currentUser.contact = payload.contact;
                 
-                localStorage.setItem('teachingPortalUser', JSON.stringify(State.currentUser));
+                // Updated key name to match rebranding
+                localStorage.setItem('professionalPortalUser', JSON.stringify(State.currentUser));
                 if (AuthManager.updateUI) AuthManager.updateUI();
                 ProfileManager.syncUI();
                 
@@ -200,7 +206,9 @@ export const ProfileManager = {
             
             if (data.status === 'success') {
                 State.currentUser.avatar = data.newAvatar || ProfileManager.pendingAvatar;
-                localStorage.setItem('teachingPortalUser', JSON.stringify(State.currentUser));
+                
+                // Updated key name to match rebranding
+                localStorage.setItem('professionalPortalUser', JSON.stringify(State.currentUser));
                 
                 if (AuthManager.updateUI) AuthManager.updateUI();
                 ProfileManager.syncUI();
