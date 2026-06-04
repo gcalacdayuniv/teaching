@@ -3,6 +3,8 @@
 import { CONFIG, Utils, API } from './globals.js';
 
 export const RecordsManager = {
+    cachedData: [],
+
     init: () => {
         const startInput = document.getElementById('filterStart');
         const endInput = document.getElementById('filterEnd');
@@ -51,6 +53,25 @@ export const RecordsManager = {
         if (confirmPaymentBtn) {
             confirmPaymentBtn.addEventListener('click', RecordsManager.confirmMarkAsPaid);
         }
+
+        // Summary Modals Events
+        const closeSummaryBtn = document.getElementById('closeSummaryBtn');
+        if (closeSummaryBtn) {
+            closeSummaryBtn.addEventListener('click', () => {
+                const modal = document.getElementById('summaryModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+        }
+
+        const cardRendered = document.getElementById('cardRendered');
+        if (cardRendered) cardRendered.addEventListener('click', () => RecordsManager.openSummaryModal('Rendered'));
+        
+        const cardPaid = document.getElementById('cardPaid');
+        if (cardPaid) cardPaid.addEventListener('click', () => RecordsManager.openSummaryModal('Paid'));
+        
+        const cardUnpaid = document.getElementById('cardUnpaid');
+        if (cardUnpaid) cardUnpaid.addEventListener('click', () => RecordsManager.openSummaryModal('Unpaid'));
     },
 
     openPaymentModal: () => {
@@ -103,6 +124,77 @@ export const RecordsManager = {
         }
     },
 
+    openSummaryModal: (type) => {
+        const start = document.getElementById('filterStart').value; 
+        const end = document.getElementById('filterEnd').value; 
+        const currentTab = document.getElementById('filterType').value; 
+
+        // Filter the cached data exactly like the main view
+        const filtered = RecordsManager.cachedData.filter(r => {
+            const d = currentTab === 'Paid' ? r.Date_Paid : r.Date;
+            let match = true;
+            if (start && d < start) match = false;
+            if (end && d > end) match = false;
+            return match;
+        });
+
+        const tbody = document.getElementById('summaryTableBody');
+        const title = document.getElementById('summaryModalTitle');
+        const col1 = document.getElementById('summaryCol1');
+        const col2 = document.getElementById('summaryCol2');
+
+        let map = {};
+        let html = '';
+
+        const formatDisplayDate = (dStr) => {
+            if (!dStr) return '-';
+            const date = new Date(dStr);
+            return isNaN(date) ? dStr : date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        };
+
+        if (type === 'Paid') {
+            title.innerText = 'Paid History';
+            col1.innerText = 'Date Paid';
+            col2.innerText = 'Amount';
+            filtered.filter(r => r.Payment_Status === 'Paid').forEach(r => {
+                const d = r.Date_Paid || 'Unknown';
+                map[d] = (map[d] || 0) + Utils.parseCurrency(r.Total_Earnings);
+            });
+            Object.keys(map).sort((a, b) => b.localeCompare(a)).forEach(d => {
+                html += `<tr class="hover:bg-gray-50"><td class="p-3 whitespace-nowrap">${d === 'Unknown' ? '-' : formatDisplayDate(d)}</td><td class="p-3 text-right font-bold text-gray-800">${Utils.formatCurrency(map[d])}</td></tr>`;
+            });
+        } else if (type === 'Unpaid') {
+            title.innerText = 'Unpaid Records';
+            col1.innerText = 'Record Date';
+            col2.innerText = 'Amount';
+            filtered.filter(r => r.Payment_Status !== 'Paid').forEach(r => {
+                const d = r.Date;
+                map[d] = (map[d] || 0) + Utils.parseCurrency(r.Total_Earnings);
+            });
+            Object.keys(map).sort((a, b) => b.localeCompare(a)).forEach(d => {
+                html += `<tr class="hover:bg-gray-50"><td class="p-3 whitespace-nowrap">${formatDisplayDate(d)}</td><td class="p-3 text-right font-bold text-amber-600">${Utils.formatCurrency(map[d])}</td></tr>`;
+            });
+        } else if (type === 'Rendered') {
+            title.innerText = 'Rendered Hours';
+            col1.innerText = 'Record Date';
+            col2.innerText = 'Hours';
+            filtered.forEach(r => {
+                const d = r.Date;
+                map[d] = (map[d] || 0) + parseFloat(r.Total_Hours || 0);
+            });
+            Object.keys(map).sort((a, b) => b.localeCompare(a)).forEach(d => {
+                html += `<tr class="hover:bg-gray-50"><td class="p-3 whitespace-nowrap">${formatDisplayDate(d)}</td><td class="p-3 text-right font-bold text-gray-800">${map[d]} hrs</td></tr>`;
+            });
+        }
+
+        if (!html) html = `<tr><td colspan="2" class="p-6 text-center text-gray-400">No records found.</td></tr>`;
+        tbody.innerHTML = html;
+
+        const modal = document.getElementById('summaryModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
     fetchData: async () => {
         const start = document.getElementById('filterStart').value; 
         const end = document.getElementById('filterEnd').value; 
@@ -113,6 +205,7 @@ export const RecordsManager = {
         
         try {
             const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
+            RecordsManager.cachedData = data; // Cache data for modal summary
             
             let h = 0, p = 0, u = 0;
             const filtered = data.filter(r => {
