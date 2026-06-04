@@ -1,4 +1,3 @@
-// js/finance.js
 import { CONFIG, API } from './globals.js';
 
 export const FinanceManager = {
@@ -287,17 +286,22 @@ export const FinanceManager = {
     insertIntoTree: (root, record, projects) => {
         let path = [];
         
+        // Push Project to hierarchy if it exists
         if (record.projectId) {
             const p = projects.find(x => x.Project_ID === record.projectId);
             path.push({ key: `proj_${record.projectId}`, title: p ? p.Name : 'Unknown Project', type: 'project', id: record.projectId });
-        } else {
-            path.push({ key: `group_${record.group}`, title: record.group, type: 'group', id: record.group });
+        }
+        
+        // Push Main Group to hierarchy
+        if (record.group) {
+            path.push({ key: `group_${record.group.replace(/\s+/g, '_')}`, title: record.group, type: 'group', id: record.group });
         }
 
+        // Push valid Sub Groups to hierarchy
         const subs = [record.subGroup1, record.subGroup2, record.subGroup3, record.subGroup4, record.subGroup5];
         for (let sub of subs) {
             if (sub && sub.trim() !== '') {
-                path.push({ key: `sub_${sub}`, title: sub, type: 'sub' });
+                path.push({ key: `sub_${sub.replace(/\s+/g, '_')}`, title: sub, type: 'sub' });
             }
         }
 
@@ -321,7 +325,7 @@ export const FinanceManager = {
             if (record.type === 'Income') node.income += record.amount;
             else node.expense += record.amount;
             
-            // If it's the last element in the hierarchy path, push the record here
+            // Only push the actual transaction record to the final/deepest level of its path
             if (index === path.length - 1) {
                 node.records.push(record);
             }
@@ -348,7 +352,7 @@ export const FinanceManager = {
 
                 return `
                 <tr class="border-b border-gray-50 hover:bg-blue-50/50 transition">
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500 align-top pt-3 w-20">${r.date}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-[11px] text-gray-500 align-top pt-3 w-20">${r.date}</td>
                     <td class="px-3 py-2 align-top pt-2.5">
                         <span class="font-semibold text-gray-700 block text-sm leading-tight">${r.desc}</span>
                         ${attachBtn}
@@ -373,7 +377,7 @@ export const FinanceManager = {
         });
 
         if (level === 0) {
-            // Level 0: Main Card (Project or Main Group)
+            // Level 0: Main Root Card (Project or Top-Level Group)
             const icon = node.type === 'project' ? '<i class="fas fa-folder-open"></i>' : '<i class="fas fa-layer-group"></i>';
             const badge = node.type === 'project' ? `<span class="bg-indigo-100 text-indigo-800 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ml-2 border border-indigo-200">Project</span>` : '';
             
@@ -412,24 +416,24 @@ export const FinanceManager = {
                 </div>
             </div>`;
         } else {
-            // Level 1-5: Nested Sub Categories
-            const paddingBase = 1.25; 
-            const paddingIndent = level * 1; 
+            // Level 1-6: Nested Folders (Group inside Project, or Sub-Groups)
+            const paddingBase = 1; 
+            const paddingIndent = level * 0.75; 
             const paddingLeft = paddingBase + paddingIndent;
 
             html += `
             <div class="border-t border-gray-100 bg-white">
-                <div class="p-2.5 bg-gray-50/40 hover:bg-gray-100 transition flex justify-between items-center cursor-pointer select-none" style="padding-left: ${paddingLeft}rem;" onclick="FinanceManager.toggleElement('${node.fullId}')">
+                <div class="p-2 bg-gray-50/40 hover:bg-gray-100 transition flex justify-between items-center cursor-pointer select-none" style="padding-left: ${paddingLeft}rem;" onclick="FinanceManager.toggleElement('${node.fullId}')">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px]"></i>
-                        <h4 class="font-bold text-gray-700 text-sm">${node.title}</h4>
+                        <h4 class="font-bold text-gray-700 text-xs">${node.title}</h4>
                     </div>
                     <div class="flex items-center gap-3 pr-2">
                         <span class="text-[11px] font-bold ${netColor}">₱${FinanceManager.formatMoney(net)}</span>
                         <i class="fas fa-chevron-down text-gray-300 text-[10px] transition-transform duration-300" id="icon-${node.fullId}"></i>
                     </div>
                 </div>
-                <div class="hidden flex-col bg-white overflow-hidden border-t border-gray-50" id="body-${node.fullId}">
+                <div class="hidden flex-col bg-white overflow-hidden border-t border-gray-50 shadow-inner" id="body-${node.fullId}">
                     ${recordsHtml}
                     ${childrenHtml}
                 </div>
