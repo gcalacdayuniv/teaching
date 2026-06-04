@@ -5,23 +5,23 @@ import { AuthManager } from './auth.js';
 import { LoggerManager } from './hours-logger.js';
 import { RecordsManager } from './records-viewer.js';
 import { ProfileManager } from './profile.js';
+import { FinanceManager } from './finance.js';
 
 initApp();
 
 function initApp() {
     try {
-        // 1. Inject HTML into the DOM first
         injectComponents();
-
-        // 2. Setup Global UI Logic (FAB & Menus)
+        FinanceManager.injectComponent();
+        
         setupUI();
 
-        // 3. Initialize all modular domains
         AuthManager.init();
         AppRouter.init();
         LoggerManager.init();
         RecordsManager.init();
         ProfileManager.init();
+        FinanceManager.init();
         
         console.log("Teaching Portal Modular Architecture Loaded Successfully");
     } catch (error) {
@@ -30,10 +30,6 @@ function initApp() {
 }
 
 function setupUI() {
-    // ----------------------------------------------------
-    // Global UI Functions (Attached to window for HTML events)
-    // ----------------------------------------------------
-    
     window.toggleFAB = function() {
         const fabMenu = document.getElementById('fabMenu');
         const fabIcon = document.getElementById('fabIcon');
@@ -41,7 +37,7 @@ function setupUI() {
         if (fabMenu.classList.contains('hidden')) {
             fabMenu.classList.remove('hidden');
             fabMenu.classList.add('flex');
-            fabIcon.style.transform = 'rotate(45deg)'; // Turns '+' into 'X'
+            fabIcon.style.transform = 'rotate(45deg)'; 
         } else {
             fabMenu.classList.add('hidden');
             fabMenu.classList.remove('flex');
@@ -56,7 +52,6 @@ function setupUI() {
         if (menu.classList.contains('translate-x-full')) {
             menu.classList.remove('translate-x-full');
             backdrop.classList.remove('hidden');
-            // Sync avatar in case AuthManager missed it
             if(window.ProfileManager && window.ProfileManager.syncUI) {
                 window.ProfileManager.syncUI();
             }
@@ -95,7 +90,6 @@ function setupUI() {
         }
     };
 
-    // Style active tab in bottom navigation dynamically
     window.addEventListener('hashchange', () => {
         const currentHash = window.location.hash;
         document.querySelectorAll('.menu-link').forEach(link => {
@@ -108,10 +102,8 @@ function setupUI() {
             }
         });
         
-        // Ensure FAB and menus close when navigating
         window.closeAllMenus();
         
-        // Only close profile modals strictly on hashchange (navigation), not when closing side menus
         if (window.closeProfileModals) {
             window.closeProfileModals();
         }
