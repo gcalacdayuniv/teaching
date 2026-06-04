@@ -4,13 +4,13 @@ export function injectComponents() {
     const mainView = document.getElementById('main-view');
     const overlayContainer = document.getElementById('overlay-container');
 
-    // 1. Inject Overlays (Login & Modals) - Updated z-index to z-[300] to always be in front
+    // 1. Inject Overlays (Login & Modals)
     overlayContainer.innerHTML = `
         <div id="loginScreen" class="fixed inset-0 bg-blue-900 z-[200] flex flex-col items-center justify-center p-4 hidden">
             <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
                 <div class="text-center mb-6">
                     <i class="fas fa-shield-alt text-5xl text-blue-600 mb-2"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Secure Portal</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Professional Portal</h1>
                     <p class="text-sm text-gray-500">Sign in to your account</p>
                 </div>
                 <form id="loginForm" class="space-y-4">
@@ -216,7 +216,7 @@ export function injectComponents() {
     const accountMenu = document.getElementById('accountMenu');
     if (accountMenu) {
         accountMenu.innerHTML = `
-            <div class="bg-gray-50 p-5 flex flex-col items-center border-b border-gray-200 relative">
+            <div class="bg-gray-50 p-5 flex flex-col items-center border-b border-gray-200 relative text-center">
                 <button onclick="window.toggleAccountMenu()" class="absolute top-3 left-3 text-gray-400 hover:text-gray-700">
                     <i class="fas fa-times text-xl"></i>
                 </button>
@@ -227,6 +227,8 @@ export function injectComponents() {
                     </div>
                 </div>
                 <h2 id="menuName" class="text-lg font-bold text-gray-900 mt-1"></h2>
+                <p id="menuEmail" class="text-xs text-gray-500 mt-0.5 truncate w-full px-2"></p>
+                <p id="menuContact" class="text-xs text-gray-500 truncate w-full px-2"></p>
             </div>
             
             <nav class="flex-1 overflow-y-auto py-3">
