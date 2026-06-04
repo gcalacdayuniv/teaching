@@ -8,10 +8,31 @@ let activeCategory = 'All';
 export const initResources = () => {
     const cancelBtn = document.getElementById('cancelResourceBtn');
     const form = document.getElementById('resourceForm');
+    const actionType = document.getElementById('resourceActionType');
     
     if (form && !form.dataset.bound) {
         if (cancelBtn) cancelBtn.addEventListener('click', closeResourceModal);
         form.addEventListener('submit', handleResourceSubmit);
+        
+        if (actionType) {
+            actionType.addEventListener('change', (e) => {
+                const val = e.target.value;
+                const urlContainer = document.getElementById('urlContainer');
+                const urlLabel = document.getElementById('urlLabel');
+                const urlInput = document.getElementById('resourceUrl');
+                
+                if (val.startsWith('create_')) {
+                    urlContainer.classList.add('hidden');
+                    urlInput.required = false;
+                    urlInput.value = '';
+                } else {
+                    urlContainer.classList.remove('hidden');
+                    urlLabel.textContent = val === 'duplicate' ? 'Original File URL to Duplicate' : 'URL Address';
+                    urlInput.required = true;
+                }
+            });
+        }
+        
         form.dataset.bound = true;
     }
 
@@ -100,6 +121,18 @@ function updateDatalist() {
 function openAddModal() {
     document.getElementById('resourceId').value = '';
     document.getElementById('resourceForm').reset();
+    
+    const actionType = document.getElementById('resourceActionType');
+    if (actionType) {
+        actionType.value = 'link';
+        actionType.disabled = false;
+    }
+    document.getElementById('urlContainer')?.classList.remove('hidden');
+    const urlLabel = document.getElementById('urlLabel');
+    if (urlLabel) urlLabel.textContent = 'URL Address';
+    const urlInput = document.getElementById('resourceUrl');
+    if (urlInput) urlInput.required = true;
+
     document.getElementById('resourceModalTitle').textContent = 'Add New Link';
     document.getElementById('resourceModal').classList.remove('hidden');
     document.getElementById('resourceModal').classList.add('flex');
@@ -114,6 +147,17 @@ function openEditModal(id) {
     document.getElementById('resourceTitle').value = resource.Title;
     document.getElementById('resourceUrl').value = resource.URL;
     
+    const actionType = document.getElementById('resourceActionType');
+    if (actionType) {
+        actionType.value = 'link';
+        actionType.disabled = true; // Prevent changing type during edit
+    }
+    document.getElementById('urlContainer')?.classList.remove('hidden');
+    const urlLabel = document.getElementById('urlLabel');
+    if (urlLabel) urlLabel.textContent = 'URL Address';
+    const urlInput = document.getElementById('resourceUrl');
+    if (urlInput) urlInput.required = true;
+    
     document.getElementById('resourceModalTitle').textContent = 'Edit Link';
     document.getElementById('resourceModal').classList.remove('hidden');
     document.getElementById('resourceModal').classList.add('flex');
@@ -127,6 +171,7 @@ function closeResourceModal() {
 async function handleResourceSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('resourceId').value;
+    const actionType = document.getElementById('resourceActionType');
     
     const payload = {
         action: id ? 'edit_resource' : 'add_resource',
@@ -134,11 +179,13 @@ async function handleResourceSubmit(e) {
         category: document.getElementById('resourceCategory').value.trim(),
         title: document.getElementById('resourceTitle').value.trim(),
         url: document.getElementById('resourceUrl').value.trim(),
+        resourceType: actionType ? actionType.value : 'link'
     };
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Saving...';
+    // Allow visual indication for time-consuming Google Drive operations
+    submitBtn.textContent = (payload.resourceType !== 'link' && !id) ? 'Generating Document...' : 'Saving...';
     submitBtn.disabled = true;
 
     try {
@@ -153,7 +200,7 @@ async function handleResourceSubmit(e) {
             closeResourceModal();
             fetchResources();
         } else {
-            alert('Failed to save the resource details.');
+            alert(data.message || 'Failed to save the resource details.');
         }
     } catch(err) {
         alert('A network error occurred while saving.');
