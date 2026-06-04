@@ -25,8 +25,8 @@ export function injectComponents() {
         <div id="paymentModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[100] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
                 <h2 class="text-lg font-bold mb-4">Confirm Payment</h2>
-                <input type="date" id="selectedPaymentDate" class="w-full border p-2.5 rounded-lg mb-4 outline-none">
-                <div class="flex justify-end gap-2"><button id="cancelPaymentBtn" class="px-4 py-2 text-gray-500">Cancel</button><button id="confirmPaymentBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Mark Paid</button></div>
+                <input type="date" id="selectedPaymentDate" class="w-full border p-2.5 rounded-lg mb-4 outline-none text-sm">
+                <div class="flex justify-end gap-2"><button id="cancelPaymentBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700">Cancel</button><button id="confirmPaymentBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold">Mark Paid</button></div>
             </div>
         </div>
 
@@ -121,17 +121,16 @@ export function injectComponents() {
                 </div>
             </div>
             <div class="bg-white border rounded-xl shadow-sm w-full overflow-x-auto">
-                <table class="min-w-full text-left text-sm whitespace-nowrap">
-                    <thead class="bg-gray-50 border-b uppercase text-[10px] sm:text-xs font-bold text-gray-500">
+                <table class="min-w-full text-left whitespace-nowrap">
+                    <thead class="bg-gray-50 border-b uppercase text-[10px] font-bold text-gray-500">
                         <tr>
-                            <th class="px-4 py-3 w-10 text-center"><input type="checkbox" id="selectAllRecords" class="w-4 h-4 rounded text-blue-600"></th>
-                            <th class="px-4 py-3">Date</th>
-                            <th class="px-4 py-3">Location</th>
-                            <th class="px-4 py-3">Earnings</th>
-                            <th class="px-4 py-3">Paid</th>
+                            <th class="px-2 py-2 w-8 text-center"><input type="checkbox" id="selectAllRecords" class="w-3 h-3 rounded text-blue-600"></th>
+                            <th class="px-2 py-2">Date</th>
+                            <th class="px-2 py-2">Status</th>
+                            <th class="px-2 py-2 text-right">Amount</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody" class="divide-y divide-gray-100 text-xs sm:text-sm"><tr><td colspan="5" class="py-10 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
+                    <tbody id="dataTableBody" class="divide-y divide-gray-100 text-[11px] sm:text-xs"><tr><td colspan="4" class="py-6 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
                 </table>
             </div>
         </div>
