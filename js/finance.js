@@ -179,6 +179,15 @@ export const FinanceManager = {
                     teachingHours: ledgerRes.teachingHours,
                     projects: projRes.projects
                 };
+
+                const fromInput = document.getElementById('finFilterFrom');
+                if (!fromInput.value) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    fromInput.value = `${year}-${month}-01`;
+                }
+
                 FinanceManager.applyFilter();
             }
         } catch (err) {
@@ -187,7 +196,10 @@ export const FinanceManager = {
     },
 
     resetFilter: () => {
-        document.getElementById('finFilterFrom').value = '';
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('finFilterFrom').value = `${year}-${month}-01`;
         document.getElementById('finFilterTo').value = '';
         FinanceManager.applyFilter();
     },
@@ -227,13 +239,21 @@ export const FinanceManager = {
             };
         });
 
-        // Map Teaching Hours
+        // Map Teaching Hours (Aggregated by Date)
+        const aggregatedEarnings = {};
         teachingHours.forEach(th => {
             const date = th.Date_Paid || th.Date;
+            if (!aggregatedEarnings[date]) {
+                aggregatedEarnings[date] = 0;
+            }
+            aggregatedEarnings[date] += parseFloat(th.Total_Earnings || 0);
+        });
+
+        Object.keys(aggregatedEarnings).forEach(date => {
             const record = {
                 date: date, type: 'Income', group: 'Earnings',
                 subGroup1: 'Teaching', subGroup2: '', subGroup3: '', subGroup4: '', subGroup5: '',
-                desc: `${th.University} - ${th.Subject_Code}`, amount: parseFloat(th.Total_Earnings), projectId: null, attachment: null
+                desc: 'Teaching Earnings', amount: aggregatedEarnings[date], projectId: null, attachment: null
             };
             lists.MainGroup.add('Earnings');
             lists.SubGroup1.add('Teaching');
