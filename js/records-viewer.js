@@ -1,5 +1,3 @@
-// js/records-viewer.js
-
 import { CONFIG, Utils, API } from './globals.js';
 
 export const RecordsManager = {
@@ -140,10 +138,13 @@ export const RecordsManager = {
 
         // Filter the cached data exactly like the main view
         const filtered = RecordsManager.cachedData.filter(r => {
+            if (currentTab === 'Paid' && r.Payment_Status !== 'Paid') return false;
+            if (currentTab === 'Unpaid' && r.Payment_Status === 'Paid') return false;
+
             const d = currentTab === 'Paid' ? r.Date_Paid : r.Date;
             let match = true;
-            if (start && d < start) match = false;
-            if (end && d > end) match = false;
+            if (start && (!d || d < start)) match = false;
+            if (end && (!d || d > end)) match = false;
             return match;
         });
 
@@ -214,15 +215,19 @@ export const RecordsManager = {
         
         try {
             const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
-            RecordsManager.cachedData = data; // Cache data for modal summary
+            RecordsManager.cachedData = data; 
             
             let h = 0, p = 0, u = 0;
             const filtered = data.filter(r => {
+                // Ensure specific tabs explicitly omit the opposite status
+                if (type === 'Paid' && r.Payment_Status !== 'Paid') return false;
+                if (type === 'Unpaid' && r.Payment_Status === 'Paid') return false;
+
                 const d = type === 'Paid' ? r.Date_Paid : r.Date;
                 
                 let match = true;
-                if (start && d < start) match = false;
-                if (end && d > end) match = false;
+                if (start && (!d || d < start)) match = false;
+                if (end && (!d || d > end)) match = false;
 
                 if(match) {
                     h += parseFloat(r.Total_Hours || 0);
