@@ -10,7 +10,16 @@ export const AuthManager = {
     checkSession: () => {
         const storedUser = localStorage.getItem('teachingPortalUser');
         if (storedUser) {
-            State.currentUser = JSON.parse(storedUser);
+            const parsedUser = JSON.parse(storedUser);
+            
+            // Force re-login if the cached session doesn't have the new 'id' field
+            if (!parsedUser.id) {
+                console.warn("Invalid session detected. Forcing logout.");
+                AuthManager.logout();
+                return;
+            }
+
+            State.currentUser = parsedUser;
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('app-shell').classList.remove('hidden');
             document.getElementById('app-shell').classList.add('flex');
