@@ -1,5 +1,3 @@
-// js/resources.js
-
 import { CONFIG, API } from './globals.js';
 
 let resourcesData = [];
@@ -300,11 +298,7 @@ async function handleResourceDeleteSubmit(e) {
     submitBtn.textContent = 'Deleting...';
     
     try {
-        const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { 
-            action: 'delete_resource', 
-            resourceId: id, 
-            password: pwd 
-        });
+        const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'delete_resource', resourceId: id, password: pwd });
         
         if (data.status === 'success') {
             document.getElementById('deleteResourceModal').classList.add('hidden');
