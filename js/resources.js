@@ -1,6 +1,6 @@
 // js/resources.js
 
-import { CONFIG } from './globals.js';
+import { CONFIG, API } from './globals.js';
 
 let resourcesData = [];
 let activeCategory = 'All';
@@ -62,9 +62,7 @@ async function fetchResources() {
     tabs.innerHTML = '';
     
     try {
-        const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}?path=resources`;
-        const res = await fetch(url);
-        resourcesData = await res.json();
+        resourcesData = await API.get(CONFIG.ENDPOINTS.GET_DATA, { path: 'resources' });
         
         renderTabs();
         renderGrid();
@@ -276,12 +274,7 @@ async function handleResourceSubmit(e) {
     submitBtn.disabled = true;
 
     try {
-        const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+        const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, payload);
         
         if (data.status === 'success') {
             closeResourceModal();
@@ -307,12 +300,11 @@ async function handleResourceDeleteSubmit(e) {
     submitBtn.textContent = 'Deleting...';
     
     try {
-        const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete_resource', resourceId: id, password: pwd })
+        const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { 
+            action: 'delete_resource', 
+            resourceId: id, 
+            password: pwd 
         });
-        const data = await res.json();
         
         if (data.status === 'success') {
             document.getElementById('deleteResourceModal').classList.add('hidden');
