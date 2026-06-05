@@ -48,8 +48,15 @@ export default {
         const userId = body.userId;
 
         if (body.action === 'login') {
-          const { results } = await env.DB.prepare("SELECT User_ID as id, Username as username, Name as name, Avatar as avatar, Email as email, Contact_Number as contact FROM Users WHERE Username = ? AND Password = ?")
-            .bind(body.username, body.password)
+          const loginStr = String(body.username).toLowerCase();
+          const rawInput = String(body.username);
+
+          const { results } = await env.DB.prepare(`
+            SELECT User_ID as id, Username as username, Name as name, Avatar as avatar, Email as email, Contact_Number as contact 
+            FROM Users 
+            WHERE (LOWER(Username) = ? OR LOWER(Email) = ? OR Contact_Number = ?) AND Password = ?
+          `)
+            .bind(loginStr, loginStr, rawInput, body.password)
             .all();
             
           if (results.length > 0) {
