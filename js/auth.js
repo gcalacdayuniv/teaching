@@ -1,4 +1,5 @@
 import { CONFIG, State } from './globals.js';
+import { ProfileManager } from './profile.js';
 
 export const AuthManager = {
     init: () => {
@@ -12,7 +13,6 @@ export const AuthManager = {
         if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
             
-            // Force re-login if the cached session doesn't have the new 'id' field
             if (!parsedUser.id) {
                 console.warn("Invalid session detected. Forcing logout.");
                 AuthManager.logout();
@@ -50,6 +50,9 @@ export const AuthManager = {
             profPreview.src = avatarUrl;
             profPreview.classList.remove('hidden');
         }
+
+        // Force UI refresh for the account menu and profile modals
+        ProfileManager.syncUI();
     },
 
     handleLogin: async (e) => {
@@ -74,7 +77,7 @@ export const AuthManager = {
                 localStorage.setItem('teachingPortalUser', JSON.stringify(data.user));
                 AuthManager.checkSession();
             } else {
-                err.innerText = "Invalid Username or Password"; err.classList.remove('hidden');
+                err.innerText = "Invalid credentials"; err.classList.remove('hidden');
             }
         } catch (error) {
             err.innerText = "Connection error. Ensure Cloudflare Worker is running."; err.classList.remove('hidden');
