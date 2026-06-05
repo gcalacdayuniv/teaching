@@ -40,7 +40,7 @@ export const API = {
     get: async (endpoint, params = {}) => {
         const url = new URL(`${CONFIG.API_BASE}${endpoint}`);
         
-        // Auto-inject userId for scoped requests
+        // Auto-inject userId for scoped requests so worker.js doesn't throw a 401
         if (State.currentUser && State.currentUser.id) {
             params.userId = State.currentUser.id;
         }
@@ -53,7 +53,7 @@ export const API = {
     },
     
     post: async (endpoint, body) => {
-        // Auto-inject userId for scoped requests
+        // Auto-inject userId for scoped requests so worker.js doesn't throw a 401
         if (State.currentUser && State.currentUser.id) {
             body.userId = State.currentUser.id;
         }
