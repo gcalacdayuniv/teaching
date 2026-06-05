@@ -1,4 +1,3 @@
-// js/profile.js
 import { CONFIG, State } from './globals.js';
 import { AuthManager } from './auth.js';
 
@@ -6,21 +5,17 @@ export const ProfileManager = {
     pendingAvatar: "",
 
     init: () => {
-        // Attach Modal Triggers to Window for inline HTML execution
         window.openUpdateDetailsModal = ProfileManager.openDetailsModal;
         window.openProfilePicModal = ProfileManager.openAvatarModal;
         window.openChangePasswordModal = ProfileManager.openPasswordModal;
         window.closeProfileModals = ProfileManager.closeAllModals;
 
-        // Bind form listeners
         document.getElementById('detailsForm')?.addEventListener('submit', ProfileManager.saveDetails);
         document.getElementById('passwordForm')?.addEventListener('submit', ProfileManager.savePassword);
         document.getElementById('avatarForm')?.addEventListener('submit', ProfileManager.saveAvatar);
         
-        // Image input listener
         document.getElementById('modalAvatarInput')?.addEventListener('change', ProfileManager.handleImageSelection);
 
-        // Sync avatar/name UI in case AuthManager misses it
         ProfileManager.syncUI();
     },
 
@@ -130,8 +125,7 @@ export const ProfileManager = {
                 State.currentUser.email = payload.email;
                 State.currentUser.contact = payload.contact;
                 
-                // Updated key name to match rebranding
-                localStorage.setItem('professionalPortalUser', JSON.stringify(State.currentUser));
+                localStorage.setItem('teachingPortalUser', JSON.stringify(State.currentUser));
                 if (AuthManager.updateUI) AuthManager.updateUI();
                 ProfileManager.syncUI();
                 
@@ -207,8 +201,7 @@ export const ProfileManager = {
             if (data.status === 'success') {
                 State.currentUser.avatar = data.newAvatar || ProfileManager.pendingAvatar;
                 
-                // Updated key name to match rebranding
-                localStorage.setItem('professionalPortalUser', JSON.stringify(State.currentUser));
+                localStorage.setItem('teachingPortalUser', JSON.stringify(State.currentUser));
                 
                 if (AuthManager.updateUI) AuthManager.updateUI();
                 ProfileManager.syncUI();
