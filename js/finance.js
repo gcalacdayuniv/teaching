@@ -76,28 +76,38 @@ export const FinanceManager = {
             </div>
 
             <div class="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col">
-                <div class="flex justify-between items-end mb-3 ml-1 shrink-0">
-                    <div>
-                        <h3 class="font-bold text-gray-700">Ledgers & Categories</h3>
-                        <div class="flex items-center gap-1.5 mt-2">
-                            <input type="date" id="finFilterFrom" class="w-24 sm:w-32 text-[10px] sm:text-xs px-1.5 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-600 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
-                            <span class="text-[10px] text-gray-400 font-medium">to</span>
-                            <input type="date" id="finFilterTo" class="w-24 sm:w-32 text-[10px] sm:text-xs px-1.5 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-600 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
-                            <button onclick="FinanceManager.resetFilter()" class="text-[10px] bg-white border border-gray-300 hover:bg-gray-100 text-gray-600 px-2 py-1 rounded transition shadow-sm"><i class="fas fa-undo"></i></button>
+                
+                <div class="mb-4 shrink-0 bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-gray-800 text-base sm:text-lg flex items-center gap-2">
+                            <i class="fas fa-book text-blue-500"></i> Ledgers & Categories
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="FinanceManager.openNewProjectModal()" class="group relative bg-white border border-indigo-200 hover:border-indigo-400 text-indigo-600 hover:bg-indigo-50 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-1.5">
+                                <i class="fas fa-folder-plus group-hover:scale-110 transition-transform"></i> <span class="hidden sm:inline">Project</span>
+                            </button>
+                            <button onclick="FinanceManager.openRecordForm()" class="group relative bg-blue-600 hover:bg-blue-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-1.5">
+                                <i class="fas fa-receipt group-hover:scale-110 transition-transform"></i> <span class="hidden sm:inline">Record</span>
+                            </button>
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="FinanceManager.openNewProjectModal()" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 border border-indigo-200 shadow-sm">
-                            <i class="fas fa-folder-plus"></i> <span class="hidden sm:inline">New Project</span>
-                        </button>
-                        <button onclick="FinanceManager.openRecordForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Log Txn</span>
+
+                    <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full">
+                        <div class="relative flex-1">
+                            <input type="date" id="finFilterFrom" class="w-full text-xs sm:text-sm px-2 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
+                        </div>
+                        <span class="text-xs text-gray-400 font-semibold"><i class="fas fa-arrow-right"></i></span>
+                        <div class="relative flex-1">
+                            <input type="date" id="finFilterTo" class="w-full text-xs sm:text-sm px-2 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
+                        </div>
+                        <button onclick="FinanceManager.clearFilter()" class="bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-400 px-3 py-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0" title="Clear Dates">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
                 
                 <div id="financeGroupsContainer" class="space-y-3 pb-4">
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -195,11 +205,8 @@ export const FinanceManager = {
         }
     },
 
-    resetFilter: () => {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        document.getElementById('finFilterFrom').value = `${year}-${month}-01`;
+    clearFilter: () => {
+        document.getElementById('finFilterFrom').value = '';
         document.getElementById('finFilterTo').value = '';
         FinanceManager.applyFilter();
     },
@@ -241,20 +248,34 @@ export const FinanceManager = {
         const aggregatedEarnings = {};
         teachingHours.forEach(th => {
             const date = th.Date_Paid || th.Date;
-            if (!aggregatedEarnings[date]) {
-                aggregatedEarnings[date] = 0;
+            const uni = th.University || 'Unknown';
+            const col = th.College || th.Department || 'Unknown';
+            const subj = th.Subject || 'Unknown';
+            
+            const key = `${date}_${uni}_${col}_${subj}`;
+
+            if (!aggregatedEarnings[key]) {
+                aggregatedEarnings[key] = {
+                    date: date,
+                    uni: uni,
+                    col: col,
+                    subj: subj,
+                    amount: 0
+                };
             }
-            aggregatedEarnings[date] += parseFloat(th.Total_Earnings || 0);
+            aggregatedEarnings[key].amount += parseFloat(th.Total_Earnings || 0);
         });
 
-        Object.keys(aggregatedEarnings).forEach(date => {
+        Object.values(aggregatedEarnings).forEach(ag => {
             const record = {
-                date: date, type: 'Income', group: 'Earnings',
-                subGroup1: 'Teaching', subGroup2: '', subGroup3: '', subGroup4: '', subGroup5: '',
-                desc: 'Teaching Earnings', amount: aggregatedEarnings[date], projectId: null, attachment: null
+                date: ag.date, type: 'Income', group: 'Teaching',
+                subGroup1: ag.uni, subGroup2: ag.col, subGroup3: ag.subj, subGroup4: '', subGroup5: '',
+                desc: `${ag.uni} - ${ag.subj}`, amount: ag.amount, projectId: null, attachment: null
             };
-            lists.MainGroup.add('Earnings');
-            lists.SubGroup1.add('Teaching');
+            lists.MainGroup.add('Teaching');
+            if (ag.uni !== 'Unknown') lists.SubGroup1.add(ag.uni);
+            if (ag.col !== 'Unknown') lists.SubGroup2.add(ag.col);
+            if (ag.subj !== 'Unknown') lists.SubGroup3.add(ag.subj);
             FinanceManager.insertIntoTree(root, record, projects);
             globalIncome += record.amount;
         });
@@ -339,7 +360,7 @@ export const FinanceManager = {
 
         const subs = [record.subGroup1, record.subGroup2, record.subGroup3, record.subGroup4, record.subGroup5];
         for (let sub of subs) {
-            if (sub && sub.trim() !== '') {
+            if (sub && sub.trim() !== '' && sub !== 'Unknown') {
                 path.push({ key: `sub_${sub.replace(/\s+/g, '_')}`, title: sub, type: 'sub' });
             }
         }
