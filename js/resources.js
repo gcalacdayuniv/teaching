@@ -40,13 +40,11 @@ export const initResources = () => {
         deleteForm.dataset.bound = true;
     }
 
-    // Ensure global click to close resource dropdowns
     if (!window.resourceDropdownsBound) {
         document.addEventListener('click', () => closeAllDropdowns());
         window.resourceDropdownsBound = true;
     }
 
-    // Ensure FAB can access the add modal directly
     window.openResourceModal = openAddModal;
 
     fetchResources();
@@ -173,6 +171,9 @@ function openAddModal() {
     
     const actionType = document.getElementById('resourceActionType');
     if (actionType) {
+        if (actionType.tagName === 'SELECT' && !Array.from(actionType.options).some(opt => opt.value === 'link')) {
+            actionType.add(new Option('Link', 'link'));
+        }
         actionType.value = 'link';
         actionType.disabled = false;
     }
@@ -223,6 +224,9 @@ function openDuplicateModal(id) {
     
     const actionType = document.getElementById('resourceActionType');
     if (actionType) {
+        if (actionType.tagName === 'SELECT' && !Array.from(actionType.options).some(opt => opt.value === 'duplicate')) {
+            actionType.add(new Option('Duplicate File', 'duplicate'));
+        }
         actionType.value = 'duplicate';
         actionType.disabled = false;
         
