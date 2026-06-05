@@ -1,4 +1,4 @@
-import { CONFIG } from './globals.js';
+import { CONFIG, API } from './globals.js';
 
 export const LoggerManager = {
     init: () => {
@@ -65,9 +65,7 @@ export const LoggerManager = {
 
     loadAutocomplete: async () => {
         try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.GET_DATA}`;
-            const res = await fetch(url);
-            const data = await res.json();
+            const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
             
             document.getElementById('uniList').innerHTML = [...new Set(data.map(d => d.University).filter(Boolean))].map(u => `<option value="${u}">`).join('');
             document.getElementById('colList').innerHTML = [...new Set(data.map(d => d.College).filter(Boolean))].map(c => `<option value="${c}">`).join('');
@@ -130,9 +128,7 @@ export const LoggerManager = {
         };
 
         try {
-            const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`;
-            const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
-            const data = await res.json();
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, payload);
             
             if (data.status === 'success') {
                 msg.textContent = `Successfully generated and saved ${data.count} sessions!`; 
