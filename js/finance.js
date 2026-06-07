@@ -92,15 +92,15 @@ export const FinanceManager = {
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full">
-                        <div class="relative flex-1">
-                            <input type="date" id="finFilterFrom" class="w-full text-xs sm:text-sm px-2 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
+                    <div class="flex items-center gap-1 sm:gap-2 bg-gray-50 p-1.5 sm:p-2 rounded-xl border border-gray-100 w-full min-w-0">
+                        <div class="relative flex-1 min-w-0">
+                            <input type="date" id="finFilterFrom" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
                         </div>
-                        <span class="text-xs text-gray-400 font-semibold"><i class="fas fa-arrow-right"></i></span>
-                        <div class="relative flex-1">
-                            <input type="date" id="finFilterTo" class="w-full text-xs sm:text-sm px-2 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm" onchange="FinanceManager.applyFilter()">
+                        <span class="text-[10px] sm:text-xs text-gray-400 font-semibold shrink-0"><i class="fas fa-arrow-right"></i></span>
+                        <div class="relative flex-1 min-w-0">
+                            <input type="date" id="finFilterTo" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
                         </div>
-                        <button onclick="FinanceManager.clearFilter()" class="bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-400 px-3 py-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0" title="Clear Dates">
+                        <button onclick="FinanceManager.clearFilter()" class="bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-400 px-2 sm:px-3 py-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0" title="Clear Dates">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -116,9 +116,9 @@ export const FinanceManager = {
                 <div class="bg-blue-800 p-4 flex justify-between items-center shrink-0">
                     <h2 class="text-white font-bold text-lg flex items-center">
                         <i class="fas fa-wallet mr-2"></i>Log Transaction 
-                        <span id="recordModalBadge" class="text-[10px] bg-blue-600 px-2 py-1 rounded ml-2 hidden font-semibold border border-blue-400"></span>
+                        <span id="recordModalBadge" class="text-[10px] bg-blue-600 px-2 py-1 rounded ml-2 hidden font-semibold border border-blue-400 truncate max-w-[120px]"></span>
                     </h2>
-                    <button onclick="FinanceManager.closeRecordForm()" class="text-blue-200 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+                    <button onclick="FinanceManager.closeRecordForm()" class="text-blue-200 hover:text-white shrink-0"><i class="fas fa-times text-xl"></i></button>
                 </div>
                 <div class="p-4 overflow-y-auto flex-1 custom-scrollbar">
                     <form id="financeRecordForm" class="space-y-4">
@@ -139,7 +139,7 @@ export const FinanceManager = {
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
                 <div class="bg-blue-800 p-4 flex justify-between items-center">
                     <h2 class="text-white font-bold text-lg"><i class="fas fa-folder-plus mr-2"></i>New Project Tracker</h2>
-                    <button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="text-blue-200 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+                    <button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="text-blue-200 hover:text-white shrink-0"><i class="fas fa-times text-xl"></i></button>
                 </div>
                 <form id="newProjectForm" class="p-5 space-y-4">
                     <div>
