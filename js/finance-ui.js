@@ -117,13 +117,6 @@ export const FinanceUI = {
         `;
         
         mainView.insertAdjacentHTML('beforeend', financeHtml);
-
-        // Global click listener to close the row action popups when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.row-action-menu-container')) {
-                document.querySelectorAll('.row-action-menu').forEach(el => el.classList.add('hidden'));
-            }
-        });
     },
 
     renderCards(transactions, teachingHours, projects) {
@@ -312,19 +305,21 @@ export const FinanceUI = {
                 const attachBtn = r.attachment ? `<button type="button" onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> Image</button>` : '';
                 
                 const actionMenu = r.rawId ? `
-                <td class="px-1 py-2 align-top pt-2 w-6 text-center relative row-action-menu-container">
-                    <button type="button" onclick="FinanceManager.toggleRowMenu('${r.rawId}')" class="text-gray-400 hover:text-gray-700 px-2 py-1 rounded transition-colors focus:outline-none">
-                        <i class="fas fa-ellipsis-v"></i>
+                <td class="px-1 py-2 align-top pt-2.5 w-6 text-center">
+                    <button type="button" onclick="FinanceManager.editRecord('${r.rawId}')" class="text-blue-500 hover:text-blue-700 px-1 py-0.5 rounded transition-colors focus:outline-none" title="Edit Transaction">
+                        <i class="fas fa-edit"></i>
                     </button>
-                    <div id="row-menu-${r.rawId}" class="row-action-menu hidden absolute right-6 top-7 bg-white shadow-lg border border-gray-100 rounded-lg py-1 z-10 w-24 text-left">
-                        <button type="button" onclick="FinanceManager.editRecord('${r.rawId}'); FinanceManager.toggleRowMenu('${r.rawId}')" class="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors">
-                            <i class="fas fa-edit text-blue-500"></i> Edit
-                        </button>
-                    </div>
                 </td>` : `<td class="w-6"></td>`;
 
+                const longPressEvents = r.rawId ? `
+                    oncontextmenu="event.preventDefault(); FinanceManager.editRecord('${r.rawId}');"
+                    ontouchstart="this.pressTimer = window.setTimeout(() => { FinanceManager.editRecord('${r.rawId}'); }, 600);"
+                    ontouchend="clearTimeout(this.pressTimer);"
+                    ontouchmove="clearTimeout(this.pressTimer);"
+                ` : '';
+
                 return `
-                <tr class="border-b border-gray-50 hover:bg-blue-50/50 transition relative">
+                <tr class="border-b border-gray-50 hover:bg-blue-50/50 transition relative select-none" ${longPressEvents}>
                     <td class="px-3 py-2 whitespace-nowrap text-[11px] text-gray-500 align-top pt-3 w-20">${r.date}</td>
                     <td class="px-3 py-2 align-top pt-2.5">
                         <span class="font-semibold text-gray-700 block text-sm leading-tight">${r.desc}</span>
@@ -412,18 +407,6 @@ export const FinanceUI = {
             </div>`;
         }
         return html;
-    },
-
-    toggleRowMenu(id) {
-        document.querySelectorAll('.row-action-menu').forEach(el => {
-            if (el.id !== `row-menu-${id}`) {
-                el.classList.add('hidden');
-            }
-        });
-        const menu = document.getElementById(`row-menu-${id}`);
-        if (menu) {
-            menu.classList.toggle('hidden');
-        }
     },
 
     toggleElement(key) {
