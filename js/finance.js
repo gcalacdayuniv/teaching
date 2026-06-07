@@ -120,15 +120,15 @@ export const FinanceManager = {
                     </h2>
                     <button onclick="FinanceManager.closeRecordForm()" class="text-blue-200 hover:text-white shrink-0"><i class="fas fa-times text-xl"></i></button>
                 </div>
-                <div class="p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="p-4 overflow-y-auto flex-1 custom-scrollbar bg-gray-50/50">
                     <form id="financeRecordForm" class="space-y-4">
-                        <div id="financeEntriesContainer" class="space-y-4"></div>
-                        <button type="button" onclick="FinanceManager.addRecordEntry()" class="w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-blue-500 hover:text-blue-600 transition text-sm font-medium">
+                        <div id="financeEntriesContainer" class="space-y-3"></div>
+                        <button type="button" onclick="FinanceManager.addRecordEntry()" class="w-full py-2 border-2 border-dashed border-blue-300 text-blue-500 bg-blue-50/50 rounded-xl hover:border-blue-500 hover:text-blue-600 transition text-sm font-medium">
                             <i class="fas fa-plus mr-1"></i> Add Another Item
                         </button>
-                        <div class="pt-4 border-t border-gray-100 flex gap-3">
-                            <button type="button" onclick="FinanceManager.closeRecordForm()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition">Cancel</button>
-                            <button type="submit" id="financeSubmitBtn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition">Save Records</button>
+                        <div class="pt-4 flex gap-3">
+                            <button type="button" onclick="FinanceManager.closeRecordForm()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition shadow-sm">Cancel</button>
+                            <button type="submit" id="financeSubmitBtn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition shadow-sm">Save Records</button>
                         </div>
                     </form>
                 </div>
@@ -573,6 +573,18 @@ export const FinanceManager = {
         document.getElementById('financeRecordModal').classList.add('hidden');
     },
 
+    showNextSubgroup: (idx, level) => {
+        const row = document.getElementById(`sg-row-${level}-${idx}`);
+        if (row) {
+            row.classList.remove('hidden');
+            row.classList.add('flex');
+        }
+        const prevBtn = document.getElementById(`sg-btn-${level-1}-${idx}`);
+        if (prevBtn) {
+            prevBtn.classList.add('hidden');
+        }
+    },
+
     addRecordEntry: () => {
         const idx = FinanceManager.recordEntries.length;
         FinanceManager.recordEntries.push({ idx });
@@ -580,42 +592,63 @@ export const FinanceManager = {
         const container = document.getElementById('financeEntriesContainer');
         const div = document.createElement('div');
         div.id = `fin-entry-${idx}`;
-        div.className = 'fin-entry bg-gray-50 border border-gray-200 rounded-xl p-4 relative shadow-sm';
+        div.className = 'fin-entry bg-white border border-gray-200 rounded-xl p-3 relative shadow-sm transition-all duration-300';
 
         const today = new Date().toISOString().split('T')[0];
         const groupValue = FinanceManager.currentPrefillGroup ? `value="${FinanceManager.currentPrefillGroup}"` : '';
 
         div.innerHTML = `
-            ${idx > 0 ? `<button type="button" onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-600 transition p-1"><i class="fas fa-times text-lg"></i></button>` : ''}
+            ${idx > 0 ? `<button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-full w-6 h-6 flex items-center justify-center transition shadow-sm border border-white z-10"><i class="fas fa-times text-xs"></i></button>` : ''}
             
-            <div class="grid grid-cols-2 gap-3">
-                <input type="date" id="finDate_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value="${today}" required>
-                <select id="finType_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" required>
+            <div class="flex gap-2 items-center mb-2">
+                <input type="date" id="finDate_${idx}" class="w-1/3 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" value="${today}" required>
+                <select id="finType_${idx}" class="w-1/4 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" required>
                     <option value="Expense">Expense</option>
                     <option value="Income">Income</option>
                 </select>
+                <div class="relative flex-1">
+                    <span class="absolute left-2 top-[7px] text-gray-400 font-bold text-[10px]">₱</span>
+                    <input type="number" id="finAmt_${idx}" class="w-full pl-5 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" placeholder="0.00" step="0.01" required>
+                </div>
             </div>
             
-            <input type="text" id="finGroup_${idx}" list="dl_MainGroup" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mt-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Main Group (e.g., Personal, Earnings)" ${groupValue} required>
-            
-            <div class="grid grid-cols-5 gap-2 mt-3">
-                <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 1">
-                <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 2">
-                <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 3">
-                <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 4">
-                <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="w-full px-1 sm:px-2 py-2 rounded-lg border border-gray-300 text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sub 5">
-            </div>
-            
-            <div class="mt-3 bg-white p-2 border border-gray-300 rounded-lg flex items-center justify-between overflow-hidden">
-                <label for="finFile_${idx}" class="text-xs font-medium text-gray-600 cursor-pointer flex-1 whitespace-nowrap"><i class="fas fa-camera mr-2"></i> Attach Image</label>
-                <input type="file" id="finFile_${idx}" accept="image/*" class="text-[10px] text-gray-500 w-full max-w-[140px]">
+            <div class="flex gap-2 mb-2">
+                <input type="text" id="finDesc_${idx}" class="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" placeholder="Description" required>
+                <input type="text" id="finGroup_${idx}" list="dl_MainGroup" class="w-1/3 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" placeholder="Main Group" ${groupValue} required>
+                <div class="flex items-center justify-center px-1">
+                    <label for="finFile_${idx}" title="Add Image" class="cursor-pointer text-gray-400 hover:text-blue-500 transition relative">
+                        <i class="fas fa-image text-lg"></i>
+                        <span id="finFileBadge_${idx}" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-full"></span>
+                    </label>
+                    <input type="file" id="finFile_${idx}" accept="image/*" class="hidden" onchange="document.getElementById('finFileBadge_${idx}').classList.remove('hidden')">
+                </div>
             </div>
 
-            <input type="text" id="finDesc_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mt-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Description" required>
-            
-            <div class="relative mt-3">
-                <span class="absolute left-3 top-2.5 text-gray-400 font-bold">₱</span>
-                <input type="number" id="finAmt_${idx}" class="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-300 text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00" step="0.01" required>
+            <div id="subgroups-container-${idx}" class="flex flex-col gap-1.5 mt-2 bg-gray-50/50 p-1.5 rounded-lg border border-dashed border-gray-200">
+                <div class="flex items-center gap-1.5" id="sg-row-1-${idx}">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
+                    <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 1">
+                    <button type="button" id="sg-btn-1-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 2)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                </div>
+                <div class="hidden items-center gap-1.5" id="sg-row-2-${idx}">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-3"></i>
+                    <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 2">
+                    <button type="button" id="sg-btn-2-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 3)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                </div>
+                <div class="hidden items-center gap-1.5" id="sg-row-3-${idx}">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-5"></i>
+                    <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 3">
+                    <button type="button" id="sg-btn-3-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 4)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                </div>
+                <div class="hidden items-center gap-1.5" id="sg-row-4-${idx}">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-7"></i>
+                    <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 4">
+                    <button type="button" id="sg-btn-4-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 5)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                </div>
+                <div class="hidden items-center gap-1.5" id="sg-row-5-${idx}">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-9"></i>
+                    <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 5">
+                </div>
             </div>
         `;
         container.appendChild(div);
