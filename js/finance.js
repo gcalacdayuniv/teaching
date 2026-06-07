@@ -3,6 +3,7 @@ import { CONFIG, API } from './globals.js';
 export const FinanceManager = {
     recordEntries: [],
     currentProjectId: null,
+    currentProjectName: null,
     currentPrefillGroup: null,
     rawData: {
         transactions: [],
@@ -113,12 +114,12 @@ export const FinanceManager = {
 
         <div id="financeRecordModal" class="hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-                <div class="bg-blue-800 p-4 flex justify-between items-center shrink-0">
-                    <h2 class="text-white font-bold text-lg flex items-center">
+                <div class="bg-blue-800 p-2 flex justify-between items-center shrink-0">
+                    <h2 class="text-white font-bold text-base flex items-center ml-2">
                         <i class="fas fa-wallet mr-2"></i>Log Transaction 
-                        <span id="recordModalBadge" class="text-[10px] bg-blue-600 px-2 py-1 rounded ml-2 hidden font-semibold border border-blue-400 truncate max-w-[120px]"></span>
+                        <span id="recordModalBadge" class="text-[9px] bg-blue-600 px-1.5 py-0.5 rounded ml-2 hidden font-semibold border border-blue-400 truncate max-w-[120px]"></span>
                     </h2>
-                    <button onclick="FinanceManager.closeRecordForm()" class="text-blue-200 hover:text-white shrink-0"><i class="fas fa-times text-xl"></i></button>
+                    <button onclick="FinanceManager.closeRecordForm()" class="text-blue-200 hover:text-white shrink-0 mr-1"><i class="fas fa-times text-lg"></i></button>
                 </div>
                 <div class="p-4 overflow-y-auto flex-1 custom-scrollbar bg-gray-50/50">
                     <form id="financeRecordForm" class="space-y-4">
@@ -159,6 +160,7 @@ export const FinanceManager = {
             <img id="viewerImage" src="" class="max-w-full max-h-full object-contain rounded shadow-2xl">
         </div>
 
+        <datalist id="dl_Projects"></datalist>
         <datalist id="dl_MainGroup"></datalist>
         <datalist id="dl_SubGroup1"></datalist>
         <datalist id="dl_SubGroup2"></datalist>
@@ -236,9 +238,10 @@ export const FinanceManager = {
         let globalIncome = 0;
         let globalExpense = 0;
         const root = {}; 
-        const lists = { MainGroup: new Set(), SubGroup1: new Set(), SubGroup2: new Set(), SubGroup3: new Set(), SubGroup4: new Set(), SubGroup5: new Set() };
+        const lists = { Projects: new Set(), MainGroup: new Set(), SubGroup1: new Set(), SubGroup2: new Set(), SubGroup3: new Set(), SubGroup4: new Set(), SubGroup5: new Set() };
         
         projects.forEach(p => {
+            lists.Projects.add(p.Name);
             root[`proj_${p.Project_ID}`] = {
                 key: `proj_${p.Project_ID}`, title: p.Name, type: 'project', id: p.Project_ID, fullId: `proj_${p.Project_ID}`,
                 income: 0, expense: 0, latestDate: null, records: [], children: {}
@@ -283,6 +286,7 @@ export const FinanceManager = {
         transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
             const record = {
+                rawId: t.ID || t.id || t.Entry_ID || null,
                 date: t.Date, type: t.Type, group: t.Main_Group,
                 subGroup1: t.Sub_Group_1, subGroup2: t.Sub_Group_2, subGroup3: t.Sub_Group_3, subGroup4: t.Sub_Group_4, subGroup5: t.Sub_Group_5,
                 desc: t.Description, amount: amt, projectId: t.Project_ID, attachment: t.Attachment
@@ -414,13 +418,14 @@ export const FinanceManager = {
                 const sign = isIncome ? '+' : '-';
                 const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
                 const attachBtn = r.attachment ? `<button onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> Image</button>` : '';
+                const editBtn = r.rawId ? `<button onclick="FinanceManager.editRecord('${r.rawId}')" class="text-[9px] bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer ml-1"><i class="fas fa-edit"></i> Edit</button>` : '';
 
                 return `
                 <tr class="border-b border-gray-50 hover:bg-blue-50/50 transition">
                     <td class="px-3 py-2 whitespace-nowrap text-[11px] text-gray-500 align-top pt-3 w-20">${r.date}</td>
                     <td class="px-3 py-2 align-top pt-2.5">
                         <span class="font-semibold text-gray-700 block text-sm leading-tight">${r.desc}</span>
-                        ${attachBtn}
+                        <div>${attachBtn}${editBtn}</div>
                     </td>
                     <td class="px-3 py-2 text-right font-bold ${colorClass} whitespace-nowrap align-top pt-3 w-24">
                         ${sign}₱${FinanceManager.formatMoney(r.amount)}
@@ -471,7 +476,7 @@ export const FinanceManager = {
                             <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Income</span><span class="text-sm font-bold text-green-600">₱${FinanceManager.formatMoney(node.income)}</span></div>
                             <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Expense</span><span class="text-sm font-bold text-red-600">₱${FinanceManager.formatMoney(node.expense)}</span></div>
                         </div>
-                        <button onclick="FinanceManager.openRecordForm('${node.type === 'project' ? node.id : ''}', '${node.title}', '${node.type === 'group' ? node.id : ''}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <button onclick="FinanceManager.openRecordForm('${node.type === 'project' ? node.id : ''}', '${node.type === 'project' ? node.title.replace(/'/g, "\\'") : ''}', '${node.type === 'group' ? node.id.replace(/'/g, "\\'") : ''}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
                             <i class="fas fa-plus"></i> <span class="hidden sm:inline">Add</span>
                         </button>
                     </div>
@@ -552,6 +557,7 @@ export const FinanceManager = {
     openRecordForm: (projectId = null, projectName = null, prefillGroup = null) => {
         FinanceManager.recordEntries = [];
         FinanceManager.currentProjectId = projectId || null;
+        FinanceManager.currentProjectName = projectName || null;
         FinanceManager.currentPrefillGroup = prefillGroup || null;
         
         const badge = document.getElementById('recordModalBadge');
@@ -569,8 +575,44 @@ export const FinanceManager = {
 
     closeRecordForm: () => {
         FinanceManager.currentProjectId = null;
+        FinanceManager.currentProjectName = null;
         FinanceManager.currentPrefillGroup = null;
         document.getElementById('financeRecordModal').classList.add('hidden');
+    },
+
+    editRecord: (id) => {
+        const tx = FinanceManager.rawData.transactions.find(t => (t.ID || t.id || t.Entry_ID) == id);
+        if (!tx) return;
+        
+        FinanceManager.recordEntries = [];
+        FinanceManager.currentProjectId = tx.Project_ID;
+        const p = FinanceManager.rawData.projects.find(x => x.Project_ID == tx.Project_ID);
+        FinanceManager.currentProjectName = p ? p.Name : '';
+        FinanceManager.currentPrefillGroup = tx.Main_Group;
+        
+        const badge = document.getElementById('recordModalBadge');
+        badge.innerHTML = `<i class="fas fa-edit mr-1"></i> Edit Record`;
+        badge.classList.remove('hidden');
+
+        document.getElementById('financeEntriesContainer').innerHTML = '';
+        FinanceManager.addRecordEntry();
+        
+        const idx = 0;
+        document.getElementById(`finId_${idx}`).value = tx.ID || tx.id || tx.Entry_ID;
+        document.getElementById(`finDate_${idx}`).value = tx.Date || '';
+        document.getElementById(`finType_${idx}`).value = tx.Type || 'Expense';
+        document.getElementById(`finAmt_${idx}`).value = tx.Amount || '';
+        document.getElementById(`finDesc_${idx}`).value = tx.Description || '';
+        document.getElementById(`finGroup_${idx}`).value = tx.Main_Group || '';
+        document.getElementById(`finProject_${idx}`).value = FinanceManager.currentProjectName;
+        
+        if (tx.Sub_Group_1) { document.getElementById(`finSubGroup1_${idx}`).value = tx.Sub_Group_1; }
+        if (tx.Sub_Group_2) { FinanceManager.showNextSubgroup(idx, 2); document.getElementById(`finSubGroup2_${idx}`).value = tx.Sub_Group_2; }
+        if (tx.Sub_Group_3) { FinanceManager.showNextSubgroup(idx, 3); document.getElementById(`finSubGroup3_${idx}`).value = tx.Sub_Group_3; }
+        if (tx.Sub_Group_4) { FinanceManager.showNextSubgroup(idx, 4); document.getElementById(`finSubGroup4_${idx}`).value = tx.Sub_Group_4; }
+        if (tx.Sub_Group_5) { FinanceManager.showNextSubgroup(idx, 5); document.getElementById(`finSubGroup5_${idx}`).value = tx.Sub_Group_5; }
+
+        document.getElementById('financeRecordModal').classList.remove('hidden');
     },
 
     showNextSubgroup: (idx, level) => {
@@ -585,6 +627,20 @@ export const FinanceManager = {
         }
     },
 
+    hideSubgroup: (idx, level) => {
+        const row = document.getElementById(`sg-row-${level}-${idx}`);
+        if (row) {
+            row.classList.add('hidden');
+            row.classList.remove('flex');
+            const input = document.getElementById(`finSubGroup${level}_${idx}`);
+            if (input) input.value = '';
+        }
+        const prevBtn = document.getElementById(`sg-btn-${level-1}-${idx}`);
+        if (prevBtn) {
+            prevBtn.classList.remove('hidden');
+        }
+    },
+
     addRecordEntry: () => {
         const idx = FinanceManager.recordEntries.length;
         FinanceManager.recordEntries.push({ idx });
@@ -596,60 +652,73 @@ export const FinanceManager = {
 
         const today = new Date().toISOString().split('T')[0];
         const groupValue = FinanceManager.currentPrefillGroup ? `value="${FinanceManager.currentPrefillGroup}"` : '';
+        const projectValue = FinanceManager.currentProjectName ? `value="${FinanceManager.currentProjectName}"` : '';
 
         div.innerHTML = `
-            ${idx > 0 ? `<button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-full w-6 h-6 flex items-center justify-center transition shadow-sm border border-white z-10"><i class="fas fa-times text-xs"></i></button>` : ''}
+            ${idx > 0 ? `<button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-full w-5 h-5 flex items-center justify-center transition shadow-sm border border-white z-10"><i class="fas fa-times text-[10px]"></i></button>` : ''}
             
-            <div class="flex gap-2 items-center mb-2">
-                <input type="date" id="finDate_${idx}" class="w-1/3 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" value="${today}" required>
-                <select id="finType_${idx}" class="w-1/4 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" required>
+            <div class="flex gap-1.5 mb-1.5 items-center">
+                <input type="text" id="finProject_${idx}" list="dl_Projects" class="flex-1 px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Project (New or Existing)" ${projectValue}>
+                <select id="finType_${idx}" class="w-[75px] px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" required>
                     <option value="Expense">Expense</option>
                     <option value="Income">Income</option>
                 </select>
-                <div class="relative flex-1">
-                    <span class="absolute left-2 top-[7px] text-gray-400 font-bold text-[10px]">₱</span>
-                    <input type="number" id="finAmt_${idx}" class="w-full pl-5 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" placeholder="0.00" step="0.01" required>
-                </div>
+                <input type="date" id="finDate_${idx}" class="w-[90px] px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" value="${today}" required>
             </div>
             
-            <div class="flex gap-2 mb-2">
-                <input type="text" id="finDesc_${idx}" class="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" placeholder="Description" required>
-                <input type="text" id="finGroup_${idx}" list="dl_MainGroup" class="w-1/3 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-colors" placeholder="Main Group" ${groupValue} required>
+            <div class="flex gap-1.5 mb-1.5 items-center">
+                <div class="relative flex-1">
+                    <span class="absolute left-1.5 top-[3px] text-gray-400 font-bold text-[11px]">₱</span>
+                    <input type="number" id="finAmt_${idx}" class="w-full pl-4 pr-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] font-bold text-gray-800 outline-none focus:ring-1 focus:ring-blue-500" placeholder="0.00" step="0.01" required>
+                </div>
                 <div class="flex items-center justify-center px-1">
                     <label for="finFile_${idx}" title="Add Image" class="cursor-pointer text-gray-400 hover:text-blue-500 transition relative">
-                        <i class="fas fa-image text-lg"></i>
-                        <span id="finFileBadge_${idx}" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-full"></span>
+                        <i class="fas fa-image text-[14px]"></i>
+                        <span id="finFileBadge_${idx}" class="hidden absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 border border-white rounded-full"></span>
                     </label>
                     <input type="file" id="finFile_${idx}" accept="image/*" class="hidden" onchange="document.getElementById('finFileBadge_${idx}').classList.remove('hidden')">
                 </div>
             </div>
 
-            <div id="subgroups-container-${idx}" class="flex flex-col gap-1.5 mt-2 bg-gray-50/50 p-1.5 rounded-lg border border-dashed border-gray-200">
-                <div class="flex items-center gap-1.5" id="sg-row-1-${idx}">
+            <div class="mb-1.5">
+                <input type="text" id="finGroup_${idx}" list="dl_MainGroup" class="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Main Group" ${groupValue} required>
+            </div>
+
+            <div id="subgroups-container-${idx}" class="flex flex-col gap-1 mt-1.5 bg-gray-50/50 p-1.5 rounded border border-dashed border-gray-200">
+                <div class="flex items-center gap-1" id="sg-row-1-${idx}">
                     <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
-                    <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 1">
-                    <button type="button" id="sg-btn-1-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 2)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                    <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 1">
+                    <button type="button" id="sg-btn-1-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 2)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
-                <div class="hidden items-center gap-1.5" id="sg-row-2-${idx}">
+                <div class="hidden items-center gap-1" id="sg-row-2-${idx}">
                     <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-3"></i>
-                    <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 2">
-                    <button type="button" id="sg-btn-2-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 3)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                    <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 2">
+                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 2)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
+                    <button type="button" id="sg-btn-2-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 3)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
-                <div class="hidden items-center gap-1.5" id="sg-row-3-${idx}">
+                <div class="hidden items-center gap-1" id="sg-row-3-${idx}">
                     <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-5"></i>
-                    <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 3">
-                    <button type="button" id="sg-btn-3-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 4)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                    <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 3">
+                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 3)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
+                    <button type="button" id="sg-btn-3-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 4)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
-                <div class="hidden items-center gap-1.5" id="sg-row-4-${idx}">
+                <div class="hidden items-center gap-1" id="sg-row-4-${idx}">
                     <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-7"></i>
-                    <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 4">
-                    <button type="button" id="sg-btn-4-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 5)" class="text-blue-500 hover:bg-blue-100 p-1 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
+                    <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 4">
+                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 4)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
+                    <button type="button" id="sg-btn-4-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 5)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
-                <div class="hidden items-center gap-1.5" id="sg-row-5-${idx}">
+                <div class="hidden items-center gap-1" id="sg-row-5-${idx}">
                     <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-9"></i>
-                    <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-[11px] outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors" placeholder="Sub Group 5">
+                    <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 5">
+                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 5)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
                 </div>
             </div>
+
+            <div class="mt-1.5">
+                <input type="text" id="finDesc_${idx}" class="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Description" required>
+            </div>
+            <input type="hidden" id="finId_${idx}">
         `;
         container.appendChild(div);
     },
@@ -669,6 +738,7 @@ export const FinanceManager = {
             if (!idxMatch) continue;
             const idx = idxMatch[1];
 
+            const recordId = document.getElementById(`finId_${idx}`)?.value;
             const date = document.getElementById(`finDate_${idx}`)?.value;
             const type = document.getElementById(`finType_${idx}`)?.value;
             const group = document.getElementById(`finGroup_${idx}`)?.value;
@@ -679,6 +749,7 @@ export const FinanceManager = {
             const subGroup5 = document.getElementById(`finSubGroup5_${idx}`)?.value;
             const desc = document.getElementById(`finDesc_${idx}`)?.value;
             const amt = document.getElementById(`finAmt_${idx}`)?.value;
+            const projName = document.getElementById(`finProject_${idx}`)?.value;
             
             const fileInput = document.getElementById(`finFile_${idx}`);
             let attachmentData = null;
@@ -693,11 +764,32 @@ export const FinanceManager = {
 
             if (!date || !type || !desc || !amt) continue;
 
+            let finalProjectId = null;
+            if (projName) {
+                let existingProj = FinanceManager.rawData.projects.find(p => p.Name.toLowerCase() === projName.trim().toLowerCase());
+                if (!existingProj) {
+                    try {
+                        await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'create_project', name: projName.trim() });
+                        const projRes = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' });
+                        if (projRes.status === 'success') {
+                            FinanceManager.rawData.projects = projRes.projects;
+                            existingProj = FinanceManager.rawData.projects.find(p => p.Name.toLowerCase() === projName.trim().toLowerCase());
+                        }
+                    } catch (e) {
+                        console.error("Error creating project inline:", e);
+                    }
+                }
+                if (existingProj) {
+                    finalProjectId = existingProj.Project_ID;
+                }
+            }
+
             records.push({ 
+                id: recordId || null,
                 date, type, group, 
                 subGroup1, subGroup2, subGroup3, subGroup4, subGroup5, 
                 description: desc, amount: amt,
-                projectId: FinanceManager.currentProjectId,
+                projectId: finalProjectId,
                 attachment: attachmentData
             });
         }
