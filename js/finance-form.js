@@ -111,6 +111,44 @@ export const FinanceForm = {
         }
     },
 
+    updateSubgroupDatalist(idx, level) {
+        if (!this.rawData) return;
+        
+        const group = document.getElementById(`finGroup_${idx}`)?.value;
+        const s1 = document.getElementById(`finSubGroup1_${idx}`)?.value;
+        const s2 = document.getElementById(`finSubGroup2_${idx}`)?.value;
+        const s3 = document.getElementById(`finSubGroup3_${idx}`)?.value;
+        const s4 = document.getElementById(`finSubGroup4_${idx}`)?.value;
+
+        const validValues = new Set();
+        
+        if (group === 'Teaching' && this.rawData.teachingHours) {
+            this.rawData.teachingHours.forEach(th => {
+                if (level === 1 && th.University) validValues.add(th.University);
+                if (level === 2 && s1 && th.University === s1 && (th.College || th.Department)) validValues.add(th.College || th.Department);
+                if (level === 3 && s1 && th.University === s1 && s2 && (th.College || th.Department) === s2 && th.Subject) validValues.add(th.Subject);
+            });
+        }
+
+        if (this.rawData.transactions) {
+            this.rawData.transactions.forEach(t => {
+                if (group && t.Main_Group !== group) return;
+                if (level > 1 && s1 && t.Sub_Group_1 !== s1) return;
+                if (level > 2 && s2 && t.Sub_Group_2 !== s2) return;
+                if (level > 3 && s3 && t.Sub_Group_3 !== s3) return;
+                if (level > 4 && s4 && t.Sub_Group_4 !== s4) return;
+                
+                let val = t[`Sub_Group_${level}`];
+                if (val) validValues.add(val);
+            });
+        }
+
+        const dl = document.getElementById(`dl_SubGroup${level}`);
+        if (dl) {
+            dl.innerHTML = Array.from(validValues).map(v => `<option value="${v}">`).join('');
+        }
+    },
+
     addRecordEntry() {
         const idx = this.recordEntries.length;
         this.recordEntries.push({ idx });
@@ -127,13 +165,16 @@ export const FinanceForm = {
         div.innerHTML = `
             ${idx > 0 ? `<button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-full w-5 h-5 flex items-center justify-center transition shadow-sm border border-white z-10"><i class="fas fa-times text-[10px]"></i></button>` : ''}
             
+            <div class="mb-1.5">
+                <input type="text" id="finProject_${idx}" list="dl_Projects" class="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Project (New or Existing)" ${projectValue}>
+            </div>
+            
             <div class="flex gap-1.5 mb-1.5 items-center">
-                <input type="text" id="finProject_${idx}" list="dl_Projects" class="flex-1 px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Project (New or Existing)" ${projectValue}>
-                <select id="finType_${idx}" class="w-[75px] px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" required>
+                <select id="finType_${idx}" class="flex-1 px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" required>
                     <option value="Expense">Expense</option>
                     <option value="Income">Income</option>
                 </select>
-                <input type="date" id="finDate_${idx}" class="w-[90px] px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" value="${today}" required>
+                <input type="date" id="finDate_${idx}" class="flex-1 px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" value="${today}" required>
             </div>
             
             <div class="flex gap-1.5 mb-1.5 items-center">
@@ -157,30 +198,30 @@ export const FinanceForm = {
             <div id="subgroups-container-${idx}" class="flex flex-col gap-1 mt-1.5 bg-gray-50/50 p-1.5 rounded border border-dashed border-gray-200">
                 <div class="flex items-center gap-1" id="sg-row-1-${idx}">
                     <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
-                    <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 1">
+                    <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 1)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 1">
                     <button type="button" id="sg-btn-1-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 2)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
                 <div class="hidden items-center gap-1" id="sg-row-2-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-3"></i>
-                    <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 2">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
+                    <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 2)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 2">
                     <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 2)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
                     <button type="button" id="sg-btn-2-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 3)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
                 <div class="hidden items-center gap-1" id="sg-row-3-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-5"></i>
-                    <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 3">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
+                    <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 3)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 3">
                     <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 3)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
                     <button type="button" id="sg-btn-3-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 4)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
                 <div class="hidden items-center gap-1" id="sg-row-4-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-7"></i>
-                    <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 4">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
+                    <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 4)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 4">
                     <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 4)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
                     <button type="button" id="sg-btn-4-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 5)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
                 </div>
                 <div class="hidden items-center gap-1" id="sg-row-5-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-9"></i>
-                    <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 5">
+                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
+                    <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 5)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 5">
                     <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 5)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
                 </div>
             </div>
