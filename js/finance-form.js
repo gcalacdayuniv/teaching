@@ -1,6 +1,8 @@
 import { CONFIG, API } from './globals.js';
 
 export const FinanceForm = {
+    editingRecordId: null,
+
     openNewProjectModal() {
         document.getElementById('newProjName').value = '';
         document.getElementById('newProjectModal').classList.remove('hidden');
@@ -25,6 +27,7 @@ export const FinanceForm = {
     },
 
     openRecordForm(projectId = null, projectName = null, prefillGroup = null) {
+        this.editingRecordId = null;
         this.recordEntries = [];
         this.currentProjectId = projectId || null;
         this.currentProjectName = projectName || null;
@@ -40,10 +43,18 @@ export const FinanceForm = {
 
         document.getElementById('financeEntriesContainer').innerHTML = '';
         this.addRecordEntry();
+        
+        const addBtn = document.querySelector('button[onclick="FinanceManager.addRecordEntry()"]');
+        if (addBtn) addBtn.classList.remove('hidden');
+        
+        const deleteBtn = document.getElementById('financeDeleteBtn');
+        if (deleteBtn) deleteBtn.classList.add('hidden');
+
         document.getElementById('financeRecordModal').classList.remove('hidden');
     },
 
     closeRecordForm() {
+        this.editingRecordId = null;
         this.currentProjectId = null;
         this.currentProjectName = null;
         this.currentPrefillGroup = null;
@@ -51,9 +62,10 @@ export const FinanceForm = {
     },
 
     editRecord(id) {
-        const tx = this.rawData.transactions.find(t => (t.ID || t.id || t.Entry_ID) == id);
+        const tx = this.rawData.transactions.find(t => (t.ID || t.id || t.Entry_ID || t.Transaction_ID) == id);
         if (!tx) return;
         
+        this.editingRecordId = id;
         this.recordEntries = [];
         this.currentProjectId = tx.Project_ID;
         const p = this.rawData.projects.find(x => x.Project_ID == tx.Project_ID);
@@ -67,8 +79,11 @@ export const FinanceForm = {
         document.getElementById('financeEntriesContainer').innerHTML = '';
         this.addRecordEntry();
         
+        const addBtn = document.querySelector('button[onclick="FinanceManager.addRecordEntry()"]');
+        if (addBtn) addBtn.classList.add('hidden');
+        
         const idx = 0;
-        document.getElementById(`finId_${idx}`).value = tx.ID || tx.id || tx.Entry_ID;
+        document.getElementById(`finId_${idx}`).value = id;
         document.getElementById(`finDate_${idx}`).value = tx.Date || '';
         document.getElementById(`finType_${idx}`).value = tx.Type || 'Expense';
         document.getElementById(`finAmt_${idx}`).value = tx.Amount || '';
@@ -82,7 +97,57 @@ export const FinanceForm = {
         if (tx.Sub_Group_4) { this.showNextSubgroup(idx, 4); document.getElementById(`finSubGroup4_${idx}`).value = tx.Sub_Group_4; }
         if (tx.Sub_Group_5) { this.showNextSubgroup(idx, 5); document.getElementById(`finSubGroup5_${idx}`).value = tx.Sub_Group_5; }
 
+        if (tx.Attachment) {
+            const badgeEl = document.getElementById(`finFileBadge_${idx}`);
+            if (badgeEl) {
+                badgeEl.classList.remove('hidden');
+                badgeEl.innerHTML = `<i class="fas fa-check"></i> Has Image`;
+                badgeEl.classList.add('bg-indigo-500');
+            }
+        }
+
+        let deleteBtn = document.getElementById('financeDeleteBtn');
+        if (!deleteBtn) {
+            const btnContainer = document.querySelector('#financeRecordForm .pt-4');
+            btnContainer.insertAdjacentHTML('afterbegin', `
+                <button type="button" id="financeDeleteBtn" onclick="FinanceManager.deleteRecord()" class="px-4 py-2 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition shadow-sm mr-auto">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `);
+        } else {
+            deleteBtn.classList.remove('hidden');
+        }
+
         document.getElementById('financeRecordModal').classList.remove('hidden');
+    },
+
+    async deleteRecord() {
+        if (!this.editingRecordId) return;
+        if (!confirm('Are you sure you want to delete this transaction?')) return;
+
+        const btn = document.getElementById('financeDeleteBtn');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                action: 'delete_finance_record',
+                transactionId: this.editingRecordId
+            });
+
+            if (data.status === 'success') {
+                this.closeRecordForm();
+                this.refreshLedger();
+            } else {
+                alert("Error: " + data.message);
+            }
+        } catch (error) {
+            alert("Failed to delete record.");
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+        }
     },
 
     showNextSubgroup(idx, level) {
@@ -163,74 +228,83 @@ export const FinanceForm = {
         const projectValue = this.currentProjectName ? `value="${this.currentProjectName}"` : '';
 
         div.innerHTML = `
-            ${idx > 0 ? `<button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-full w-5 h-5 flex items-center justify-center transition shadow-sm border border-white z-10"><i class="fas fa-times text-[10px]"></i></button>` : ''}
-            
-            <div class="mb-1.5">
-                <input type="text" id="finProject_${idx}" list="dl_Projects" class="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Project (New or Existing)" ${projectValue}>
-            </div>
-            
-            <div class="flex gap-1.5 mb-1.5 items-center">
-                <select id="finType_${idx}" class="flex-1 px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" required>
-                    <option value="Expense">Expense</option>
-                    <option value="Income">Income</option>
-                </select>
-                <input type="date" id="finDate_${idx}" class="flex-1 px-1 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" value="${today}" required>
-            </div>
-            
-            <div class="flex gap-1.5 mb-1.5 items-center">
-                <div class="relative flex-1">
-                    <span class="absolute left-1.5 top-[3px] text-gray-400 font-bold text-[11px]">₱</span>
-                    <input type="number" id="finAmt_${idx}" class="w-full pl-4 pr-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] font-bold text-gray-800 outline-none focus:ring-1 focus:ring-blue-500" placeholder="0.00" step="0.01" required>
-                </div>
-                <div class="flex items-center justify-center px-1">
-                    <label for="finFile_${idx}" title="Add Image" class="cursor-pointer text-gray-400 hover:text-blue-500 transition relative">
-                        <i class="fas fa-image text-[14px]"></i>
-                        <span id="finFileBadge_${idx}" class="hidden absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 border border-white rounded-full"></span>
-                    </label>
-                    <input type="file" id="finFile_${idx}" accept="image/*" class="hidden" onchange="document.getElementById('finFileBadge_${idx}').classList.remove('hidden')">
-                </div>
-            </div>
-
-            <div class="mb-1.5">
-                <input type="text" id="finGroup_${idx}" list="dl_MainGroup" class="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Main Group" ${groupValue} required>
-            </div>
-
-            <div id="subgroups-container-${idx}" class="flex flex-col gap-1 mt-1.5 bg-gray-50/50 p-1.5 rounded border border-dashed border-gray-200">
-                <div class="flex items-center gap-1" id="sg-row-1-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
-                    <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 1)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 1">
-                    <button type="button" id="sg-btn-1-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 2)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
-                </div>
-                <div class="hidden items-center gap-1" id="sg-row-2-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
-                    <input type="text" id="finSubGroup2_${idx}" list="dl_SubGroup2" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 2)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 2">
-                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 2)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
-                    <button type="button" id="sg-btn-2-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 3)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
-                </div>
-                <div class="hidden items-center gap-1" id="sg-row-3-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
-                    <input type="text" id="finSubGroup3_${idx}" list="dl_SubGroup3" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 3)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 3">
-                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 3)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
-                    <button type="button" id="sg-btn-3-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 4)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
-                </div>
-                <div class="hidden items-center gap-1" id="sg-row-4-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
-                    <input type="text" id="finSubGroup4_${idx}" list="dl_SubGroup4" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 4)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 4">
-                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 4)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
-                    <button type="button" id="sg-btn-4-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 5)" class="text-blue-500 hover:bg-blue-100 p-0.5 rounded transition"><i class="fas fa-plus text-[10px]"></i></button>
-                </div>
-                <div class="hidden items-center gap-1" id="sg-row-5-${idx}">
-                    <i class="fas fa-level-up-alt rotate-90 text-gray-300 text-[10px] ml-1"></i>
-                    <input type="text" id="finSubGroup5_${idx}" list="dl_SubGroup5" onfocus="FinanceManager.updateSubgroupDatalist(${idx}, 5)" class="flex-1 px-1.5 py-1 bg-white border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Sub Group 5">
-                    <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, 5)" class="text-red-400 hover:bg-red-50 p-0.5 rounded transition"><i class="fas fa-times text-[10px]"></i></button>
-                </div>
-            </div>
-
-            <div class="mt-1.5">
-                <input type="text" id="finDesc_${idx}" class="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-500" placeholder="Description" required>
-            </div>
+            ${idx > 0 && !this.editingRecordId ? `<button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-full w-6 h-6 flex items-center justify-center transition shadow-sm z-10"><i class="fas fa-times text-xs"></i></button>` : ''}
             <input type="hidden" id="finId_${idx}">
+            
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Date</label>
+                    <input type="date" id="finDate_${idx}" value="${today}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" required>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Type</label>
+                    <select id="finType_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 font-semibold text-gray-700">
+                        <option value="Expense">Expense</option>
+                        <option value="Income">Income</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3 relative">
+                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Project Tracker (Optional)</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-folder"></i></span>
+                    <input type="text" id="finProject_${idx}" list="dl_Projects" ${projectValue} class="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Link to project...">
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 mb-3 space-y-2">
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Main Group</label>
+                        <input type="text" id="finGroup_${idx}" list="dl_MainGroup" ${groupValue} onchange="FinanceManager.updateSubgroupDatalist(${idx}, 1)" class="w-full px-3 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-gray-700" placeholder="e.g. Home, Auto" required>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Subgroup 1</label>
+                        <div class="flex gap-1">
+                            <input type="text" id="finSubGroup1_${idx}" list="dl_SubGroup1" onchange="FinanceManager.updateSubgroupDatalist(${idx}, 2)" class="w-full px-3 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Utilities">
+                            <button type="button" id="sg-btn-1-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, 2)" class="px-2 bg-white border border-gray-300 rounded-lg text-gray-500 hover:text-blue-500 hover:border-blue-300"><i class="fas fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                ${[2,3,4,5].map(level => `
+                <div id="sg-row-${level}-${idx}" class="hidden gap-2 pt-1 border-t border-gray-200/60 mt-2">
+                    <div class="flex-1">
+                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-0.5">Subgroup ${level}</label>
+                        <div class="flex gap-1">
+                            <input type="text" id="finSubGroup${level}_${idx}" list="dl_SubGroup${level}" onchange="FinanceManager.updateSubgroupDatalist(${idx}, ${level+1})" class="w-full px-3 py-1 rounded-md border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            ${level < 5 ? `<button type="button" id="sg-btn-${level}-${idx}" onclick="FinanceManager.showNextSubgroup(${idx}, ${level+1})" class="px-2 bg-white border border-gray-300 rounded-md text-gray-500 hover:text-blue-500 hover:border-blue-300"><i class="fas fa-plus text-[10px]"></i></button>` : ''}
+                            <button type="button" onclick="FinanceManager.hideSubgroup(${idx}, ${level})" class="px-2 bg-white border border-gray-300 rounded-md text-red-400 hover:bg-red-50 hover:border-red-200"><i class="fas fa-times text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+                `).join('')}
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Description</label>
+                    <input type="text" id="finDesc_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="What was this for?" required>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Amount (₱)</label>
+                    <input type="number" step="0.01" id="finAmt_${idx}" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-bold text-gray-800" placeholder="0.00" required>
+                </div>
+            </div>
+            
+            <div class="mt-3 flex items-center justify-between bg-indigo-50/50 p-2 rounded-lg border border-indigo-100/50">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                    <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-200 group-hover:text-indigo-600 transition">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-indigo-700">Attach Receipt</span>
+                    <span id="finFileBadge_${idx}" class="hidden text-[9px] bg-green-500 text-white px-1.5 py-0.5 rounded-full"><i class="fas fa-check"></i></span>
+                </label>
+                <input type="file" id="finFile_${idx}" accept="image/*" class="hidden" onchange="document.getElementById('finFileBadge_${idx}').classList.remove('hidden')">
+            </div>
         `;
+
         container.appendChild(div);
     },
 
@@ -238,90 +312,75 @@ export const FinanceForm = {
         e.preventDefault();
         const btn = document.getElementById('financeSubmitBtn');
         const origText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         btn.disabled = true;
 
-        const entryEls = document.querySelectorAll('.fin-entry');
-        const records = [];
-
-        for (const entryEl of entryEls) {
-            const idxMatch = entryEl.id.match(/fin-entry-(\d+)/);
-            if (!idxMatch) continue;
-            const idx = idxMatch[1];
-
-            const recordId = document.getElementById(`finId_${idx}`)?.value;
-            const date = document.getElementById(`finDate_${idx}`)?.value;
-            const type = document.getElementById(`finType_${idx}`)?.value;
-            const group = document.getElementById(`finGroup_${idx}`)?.value;
-            const subGroup1 = document.getElementById(`finSubGroup1_${idx}`)?.value;
-            const subGroup2 = document.getElementById(`finSubGroup2_${idx}`)?.value;
-            const subGroup3 = document.getElementById(`finSubGroup3_${idx}`)?.value;
-            const subGroup4 = document.getElementById(`finSubGroup4_${idx}`)?.value;
-            const subGroup5 = document.getElementById(`finSubGroup5_${idx}`)?.value;
-            const desc = document.getElementById(`finDesc_${idx}`)?.value;
-            const amt = document.getElementById(`finAmt_${idx}`)?.value;
-            const projName = document.getElementById(`finProject_${idx}`)?.value;
-            
-            const fileInput = document.getElementById(`finFile_${idx}`);
-            let attachmentData = null;
-
-            if (fileInput && fileInput.files.length > 0) {
-                try {
-                    attachmentData = await this.compressImage(fileInput.files[0]);
-                } catch(err) {
-                    console.error("Failed to compress image", err);
-                }
-            }
-
-            if (!date || !type || !desc || !amt) continue;
-
-            let finalProjectId = null;
-            if (projName) {
-                let existingProj = this.rawData.projects.find(p => p.Name.toLowerCase() === projName.trim().toLowerCase());
-                if (!existingProj) {
-                    try {
-                        await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'create_project', name: projName.trim() });
-                        const projRes = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' });
-                        if (projRes.status === 'success') {
-                            this.rawData.projects = projRes.projects;
-                            existingProj = this.rawData.projects.find(p => p.Name.toLowerCase() === projName.trim().toLowerCase());
-                        }
-                    } catch (err) {
-                        console.error("Error creating project inline:", err);
-                    }
-                }
-                if (existingProj) {
-                    finalProjectId = existingProj.Project_ID;
-                }
-            }
-
-            records.push({ 
-                id: recordId || null,
-                date, type, group, 
-                subGroup1, subGroup2, subGroup3, subGroup4, subGroup5, 
-                description: desc, amount: amt,
-                projectId: finalProjectId,
-                attachment: attachmentData
-            });
-        }
-
-        if (records.length === 0) {
-            btn.innerHTML = origText;
-            btn.disabled = false;
-            return;
-        }
-
         try {
-            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'add_finance_records', records });
+            const entryEls = document.querySelectorAll('.fin-entry');
+            const records = [];
 
-            if (data.status === 'success') {
-                this.closeRecordForm();
-                this.refreshLedger();
-            } else {
-                alert("Error saving records: " + data.message);
+            for (const entryEl of entryEls) {
+                const idx = entryEl.id.split('-')[2];
+                const fileInput = document.getElementById(`finFile_${idx}`);
+                let attachmentData = null;
+
+                if (fileInput.files.length > 0) {
+                    attachmentData = await this.compressImage(fileInput.files[0]);
+                }
+
+                const projectName = document.getElementById(`finProject_${idx}`).value;
+                let projectId = null;
+                if (projectName) {
+                    const existingProject = this.rawData.projects.find(p => p.Name.toLowerCase() === projectName.toLowerCase());
+                    projectId = existingProject ? existingProject.Project_ID : null;
+                }
+
+                records.push({
+                    id: document.getElementById(`finId_${idx}`).value || null,
+                    date: document.getElementById(`finDate_${idx}`).value,
+                    type: document.getElementById(`finType_${idx}`).value,
+                    group: document.getElementById(`finGroup_${idx}`).value,
+                    subGroup1: document.getElementById(`finSubGroup1_${idx}`).value,
+                    subGroup2: document.getElementById(`finSubGroup2_${idx}`)?.value || '',
+                    subGroup3: document.getElementById(`finSubGroup3_${idx}`)?.value || '',
+                    subGroup4: document.getElementById(`finSubGroup4_${idx}`)?.value || '',
+                    subGroup5: document.getElementById(`finSubGroup5_${idx}`)?.value || '',
+                    description: document.getElementById(`finDesc_${idx}`).value,
+                    amount: document.getElementById(`finAmt_${idx}`).value,
+                    projectId: projectId,
+                    attachment: attachmentData
+                });
             }
-        } catch (error) {
-            alert("Network error saving records.");
+
+            if (this.editingRecordId) {
+                const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                    action: 'edit_finance_record',
+                    record: records[0]
+                });
+
+                if (data.status === 'success') {
+                    this.closeRecordForm();
+                    this.refreshLedger();
+                } else {
+                    alert("Error updating: " + data.message);
+                }
+            } else {
+                const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                    action: 'add_finance_records',
+                    records: records
+                });
+
+                if (data.status === 'success') {
+                    this.closeRecordForm();
+                    this.refreshLedger();
+                } else {
+                    alert("Error saving: " + data.message);
+                }
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Network error.");
         } finally {
             btn.innerHTML = origText;
             btn.disabled = false;
