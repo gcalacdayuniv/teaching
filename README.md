@@ -41,6 +41,7 @@ When asked to add features, debug, or refactor, you must strictly adhere to the 
 3. **Strict Static Frontend Constraints:** The frontend must consist only of `.html`, `.css`, and `.js` files. Dynamic HTML must be injected via `components.js` or domain-specific injectors.
 4. **Database & Security Integrity:** All new database records MUST utilize `crypto.randomUUID()` for primary keys. The backend API must NEVER require an `api_secret` from the frontend (security is handled via strict CORS origins). D1 batch operations (`env.DB.batch`) should be used for multiple insertions.
 5. **Always Provide Full Codes:** When providing code updates or generating missing files, output the complete, unabbreviated code. Never truncate blocks using placeholders like `// ... rest of the code here`.
+6. **Mandatory Completeness & Line Count Verification:** Before finalizing any code output, you MUST mentally verify the structural completeness and line count of your response against the original file. Ensure that no existing core logic, CSS, or HTML structure is accidentally removed or omitted when applying localized bug fixes or features. 
 
 ## Task
 Whenever the user requests an update, refactor, or addition to the Professional Portal, analyze which specific module/file requires changes, draft the exact logic needed using this separated file architecture, and output the fully updated structural file scripts.
