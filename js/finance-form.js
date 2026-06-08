@@ -1,5 +1,4 @@
 import { CONFIG, API } from './globals.js';
-import { FinanceUtils } from './finance-utils.js';
 
 export const FinanceForm = {
     openNewProjectModal() {
@@ -59,11 +58,7 @@ export const FinanceForm = {
     },
 
     editRecord(id) {
-        const tx = this.rawData.transactions.find((t, index) => {
-            const dynamicId = t.ID || t.id || t.Entry_ID || t.Transaction_ID || t.Record_ID || index.toString();
-            return dynamicId == id;
-        });
-        
+        const tx = this.rawData.transactions.find(t => (t.ID || t.id || t.Entry_ID) == id);
         if (!tx) return;
         
         this.recordEntries = [];
@@ -90,7 +85,7 @@ export const FinanceForm = {
         this.addRecordEntry();
         
         const idx = 0;
-        document.getElementById(`finId_${idx}`).value = id;
+        document.getElementById(`finId_${idx}`).value = tx.ID || tx.id || tx.Entry_ID;
         document.getElementById(`finDate_${idx}`).value = tx.Date || '';
         document.getElementById(`finType_${idx}`).value = tx.Type || 'Expense';
         document.getElementById(`finAmt_${idx}`).value = tx.Amount || '';
@@ -313,7 +308,7 @@ export const FinanceForm = {
 
             if (fileInput && fileInput.files.length > 0) {
                 try {
-                    attachmentData = await FinanceUtils.compressImage(fileInput.files[0]);
+                    attachmentData = await this.compressImage(fileInput.files[0]);
                 } catch(err) {
                     console.error("Failed to compress image", err);
                 }
