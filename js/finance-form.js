@@ -30,6 +30,13 @@ export const FinanceForm = {
         this.currentProjectName = projectName || null;
         this.currentPrefillGroup = prefillGroup || null;
         
+        document.getElementById('recordModalTitleText').innerText = 'Log Transaction';
+        document.getElementById('financeSubmitBtn').innerText = 'Save Records';
+        document.getElementById('financeAddAnotherBtn').classList.remove('hidden');
+        
+        const delBtn = document.getElementById('financeDeleteBtn');
+        if (delBtn) delBtn.classList.add('hidden');
+
         const badge = document.getElementById('recordModalBadge');
         if (projectName) {
             badge.innerHTML = `<i class="fas ${projectId ? 'fa-folder-open' : 'fa-layer-group'} mr-1"></i> ${projectName}`;
@@ -60,6 +67,16 @@ export const FinanceForm = {
         this.currentProjectName = p ? p.Name : '';
         this.currentPrefillGroup = tx.Main_Group;
         
+        document.getElementById('recordModalTitleText').innerText = 'Edit Transaction Details';
+        document.getElementById('financeSubmitBtn').innerText = 'Update Record';
+        document.getElementById('financeAddAnotherBtn').classList.add('hidden');
+
+        const delBtn = document.getElementById('financeDeleteBtn');
+        if (delBtn) {
+            delBtn.classList.remove('hidden');
+            delBtn.onclick = () => this.deleteRecord(id);
+        }
+
         const badge = document.getElementById('recordModalBadge');
         badge.innerHTML = `<i class="fas fa-edit mr-1"></i> Edit Record`;
         badge.classList.remove('hidden');
@@ -83,6 +100,30 @@ export const FinanceForm = {
         if (tx.Sub_Group_5) { this.showNextSubgroup(idx, 5); document.getElementById(`finSubGroup5_${idx}`).value = tx.Sub_Group_5; }
 
         document.getElementById('financeRecordModal').classList.remove('hidden');
+    },
+
+    async deleteRecord(id) {
+        if (!confirm("Are you sure you want to delete this transaction?")) return;
+        
+        const btn = document.getElementById('financeDeleteBtn');
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'delete_finance_record', recordId: id });
+            if (data.status === 'success') {
+                this.closeRecordForm();
+                this.refreshLedger();
+            } else {
+                alert("Error deleting record: " + data.message);
+            }
+        } catch (err) {
+            alert("Network error while deleting record.");
+        } finally {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+        }
     },
 
     showNextSubgroup(idx, level) {
