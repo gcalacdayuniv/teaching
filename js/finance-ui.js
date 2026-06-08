@@ -157,7 +157,6 @@ export const FinanceUI = {
 
         Object.values(aggregatedEarnings).forEach(ag => {
             const record = {
-                isAggregated: true,
                 date: ag.date, type: 'Income', group: 'Teaching',
                 subGroup1: ag.uni, subGroup2: ag.col, subGroup3: ag.subj, subGroup4: '', subGroup5: '',
                 desc: `${ag.uni} - ${ag.subj}`, amount: ag.amount, projectId: null, attachment: null
@@ -170,13 +169,10 @@ export const FinanceUI = {
             globalIncome += record.amount;
         });
 
-        transactions.forEach((t, index) => {
+        transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
-            const dynamicId = t.ID || t.id || t.Entry_ID || t.Transaction_ID || t.Record_ID || index.toString();
-            
             const record = {
-                rawId: dynamicId,
-                isAggregated: false,
+                rawId: t.ID || t.id || t.Entry_ID || null,
                 date: t.Date, type: t.Type, group: t.Main_Group,
                 subGroup1: t.Sub_Group_1, subGroup2: t.Sub_Group_2, subGroup3: t.Sub_Group_3, subGroup4: t.Sub_Group_4, subGroup5: t.Sub_Group_5,
                 desc: t.Description, amount: amt, projectId: t.Project_ID, attachment: t.Attachment
@@ -195,9 +191,9 @@ export const FinanceUI = {
             this.insertIntoTree(root, record, projects);
         });
 
-        document.getElementById('finTotalIncome').innerText = `₱${FinanceUtils.formatMoney(globalIncome)}`;
-        document.getElementById('finTotalExpense').innerText = `₱${FinanceUtils.formatMoney(globalExpense)}`;
-        document.getElementById('finNetBalance').innerText = `₱${FinanceUtils.formatMoney(globalIncome - globalExpense)}`;
+        document.getElementById('finTotalIncome').innerText = `₱${this.formatMoney(globalIncome)}`;
+        document.getElementById('finTotalExpense').innerText = `₱${this.formatMoney(globalExpense)}`;
+        document.getElementById('finNetBalance').innerText = `₱${this.formatMoney(globalIncome - globalExpense)}`;
 
         Object.keys(lists).forEach(k => {
             const dl = document.getElementById(`dl_${k}`);
@@ -309,14 +305,14 @@ export const FinanceUI = {
                 const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
                 const attachBtn = r.attachment ? `<button type="button" onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> Image</button>` : '';
                 
-                const actionMenu = !r.isAggregated ? `
+                const actionMenu = r.rawId ? `
                 <td class="px-1 py-2 align-top pt-2.5 w-6 text-center">
                     <button type="button" onclick="FinanceManager.editRecord('${r.rawId}')" class="text-blue-500 hover:text-blue-700 px-1 py-0.5 rounded transition-colors focus:outline-none" title="Edit Transaction">
                         <i class="fas fa-edit"></i>
                     </button>
                 </td>` : `<td class="w-6"></td>`;
 
-                const longPressEvents = !r.isAggregated ? `
+                const longPressEvents = r.rawId ? `
                     oncontextmenu="event.preventDefault(); FinanceManager.editRecord('${r.rawId}');"
                     ontouchstart="this.pressTimer = window.setTimeout(() => { FinanceManager.editRecord('${r.rawId}'); }, 600);"
                     ontouchend="clearTimeout(this.pressTimer);"
@@ -331,7 +327,7 @@ export const FinanceUI = {
                         <div>${attachBtn}</div>
                     </td>
                     <td class="px-3 py-2 text-right font-bold ${colorClass} whitespace-nowrap align-top pt-3 w-24">
-                        ${sign}₱${FinanceUtils.formatMoney(r.amount)}
+                        ${sign}₱${this.formatMoney(r.amount)}
                     </td>
                     ${actionMenu}
                 </tr>`;
@@ -368,7 +364,7 @@ export const FinanceUI = {
                     <div class="text-right flex items-center gap-3 sm:gap-4">
                         <div class="text-right mr-1">
                             <p class="text-[9px] text-gray-400 uppercase font-bold hidden sm:block">Net Position</p>
-                            <p class="text-sm font-bold ${netColor}">₱${FinanceUtils.formatMoney(net)}</p>
+                            <p class="text-sm font-bold ${netColor}">₱${this.formatMoney(net)}</p>
                         </div>
                         <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300" id="icon-${node.fullId}"></i>
                     </div>
@@ -377,8 +373,8 @@ export const FinanceUI = {
                 <div class="hidden flex-col bg-white" id="body-${node.fullId}">
                     <div class="p-3 bg-gray-50 flex justify-between items-center border-t border-b border-gray-200 shadow-inner">
                         <div class="flex gap-4">
-                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Income</span><span class="text-sm font-bold text-green-600">₱${FinanceUtils.formatMoney(node.income)}</span></div>
-                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Expense</span><span class="text-sm font-bold text-red-600">₱${FinanceUtils.formatMoney(node.expense)}</span></div>
+                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Income</span><span class="text-sm font-bold text-green-600">₱${this.formatMoney(node.income)}</span></div>
+                            <div><span class="text-[9px] text-gray-500 uppercase font-bold block">Expense</span><span class="text-sm font-bold text-red-600">₱${this.formatMoney(node.expense)}</span></div>
                         </div>
                         <button type="button" onclick="FinanceManager.openRecordForm('${node.type === 'project' ? node.id : ''}', '${node.type === 'project' ? node.title.replace(/'/g, "\\'") : ''}', '${node.type === 'group' ? node.id.replace(/'/g, "\\'") : ''}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
                             <i class="fas fa-plus"></i> <span class="hidden sm:inline">Add</span>
@@ -401,7 +397,7 @@ export const FinanceUI = {
                         <h4 class="font-bold text-gray-700 text-xs">${node.title}</h4>
                     </div>
                     <div class="flex items-center gap-3 pr-2">
-                        <span class="text-[11px] font-bold ${netColor}">₱${FinanceUtils.formatMoney(net)}</span>
+                        <span class="text-[11px] font-bold ${netColor}">₱${this.formatMoney(net)}</span>
                         <i class="fas fa-chevron-down text-gray-300 text-[10px] transition-transform duration-300" id="icon-${node.fullId}"></i>
                     </div>
                 </div>
