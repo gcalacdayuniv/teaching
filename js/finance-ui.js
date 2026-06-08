@@ -172,7 +172,8 @@ export const FinanceUI = {
         transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
             const record = {
-                rawId: t.ID || t.id || t.Entry_ID || null,
+                // ADDED extended mapping for database primary keys
+                rawId: t.ID || t.id || t.Entry_ID || t.Transaction_ID || t.Record_ID || t.transaction_id || null,
                 date: t.Date, type: t.Type, group: t.Main_Group,
                 subGroup1: t.Sub_Group_1, subGroup2: t.Sub_Group_2, subGroup3: t.Sub_Group_3, subGroup4: t.Sub_Group_4, subGroup5: t.Sub_Group_5,
                 desc: t.Description, amount: amt, projectId: t.Project_ID, attachment: t.Attachment
