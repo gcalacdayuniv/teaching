@@ -172,7 +172,6 @@ export const FinanceUI = {
         transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
             const record = {
-                // ADDED extended mapping for database primary keys
                 rawId: t.ID || t.id || t.Entry_ID || t.Transaction_ID || t.Record_ID || t.transaction_id || null,
                 date: t.Date, type: t.Type, group: t.Main_Group,
                 subGroup1: t.Sub_Group_1, subGroup2: t.Sub_Group_2, subGroup3: t.Sub_Group_3, subGroup4: t.Sub_Group_4, subGroup5: t.Sub_Group_5,
@@ -304,16 +303,20 @@ export const FinanceUI = {
                 const isIncome = r.type === 'Income';
                 const sign = isIncome ? '+' : '-';
                 const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
-                const attachBtn = r.attachment ? `<button type="button" onclick="FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer"><i class="fas fa-image"></i> Image</button>` : '';
+                
+                // Added event.stopPropagation() and z-index to prevent conflicting row clicks
+                const attachBtn = r.attachment ? `<button type="button" onclick="event.stopPropagation(); FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer relative z-10"><i class="fas fa-image"></i> Image</button>` : '';
                 
                 const actionMenu = r.rawId ? `
-                <td class="px-1 py-2 align-top pt-2.5 w-6 text-center">
-                    <button type="button" onclick="FinanceManager.editRecord('${r.rawId}')" class="text-blue-500 hover:text-blue-700 px-1 py-0.5 rounded transition-colors focus:outline-none" title="Edit Transaction">
+                <td class="px-1 py-2 align-top pt-2.5 w-6 text-center relative z-10">
+                    <button type="button" onclick="event.stopPropagation(); FinanceManager.editRecord('${r.rawId}')" class="text-blue-500 hover:text-blue-700 px-1 py-0.5 rounded transition-colors focus:outline-none" title="Edit Transaction">
                         <i class="fas fa-edit"></i>
                     </button>
                 </td>` : `<td class="w-6"></td>`;
 
-                const longPressEvents = r.rawId ? `
+                // Made the entire row clickable to edit, solving the un-selectable issue
+                const rowEvents = r.rawId ? `
+                    onclick="FinanceManager.editRecord('${r.rawId}')"
                     oncontextmenu="event.preventDefault(); FinanceManager.editRecord('${r.rawId}');"
                     ontouchstart="this.pressTimer = window.setTimeout(() => { FinanceManager.editRecord('${r.rawId}'); }, 600);"
                     ontouchend="clearTimeout(this.pressTimer);"
@@ -321,7 +324,7 @@ export const FinanceUI = {
                 ` : '';
 
                 return `
-                <tr class="border-b border-gray-50 hover:bg-blue-50/50 transition relative select-none" ${longPressEvents}>
+                <tr class="border-b border-gray-50 hover:bg-blue-50/50 transition relative select-none ${r.rawId ? 'cursor-pointer' : ''}" ${rowEvents}>
                     <td class="px-3 py-2 whitespace-nowrap text-[11px] text-gray-500 align-top pt-3 w-20">${r.date}</td>
                     <td class="px-3 py-2 align-top pt-2.5">
                         <span class="font-semibold text-gray-700 block text-sm leading-tight">${r.desc}</span>
