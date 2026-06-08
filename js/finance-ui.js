@@ -63,7 +63,7 @@ export const FinanceUI = {
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
                 <div class="bg-blue-800 p-2 flex justify-between items-center shrink-0">
                     <h2 class="text-white font-bold text-base flex items-center ml-2">
-                        <i class="fas fa-wallet mr-2"></i>Log Transaction 
+                        <i class="fas fa-wallet mr-2"></i><span id="recordModalTitleText">Log Transaction</span>
                         <span id="recordModalBadge" class="text-[9px] bg-blue-600 px-1.5 py-0.5 rounded ml-2 hidden font-semibold border border-blue-400 truncate max-w-[120px]"></span>
                     </h2>
                     <button type="button" onclick="FinanceManager.closeRecordForm()" class="text-blue-200 hover:text-white shrink-0 mr-1"><i class="fas fa-times text-lg"></i></button>
@@ -71,10 +71,11 @@ export const FinanceUI = {
                 <div class="p-4 overflow-y-auto flex-1 custom-scrollbar bg-gray-50/50">
                     <form id="financeRecordForm" class="space-y-4">
                         <div id="financeEntriesContainer" class="space-y-3"></div>
-                        <button type="button" onclick="FinanceManager.addRecordEntry()" class="w-full py-2 border-2 border-dashed border-blue-300 text-blue-500 bg-blue-50/50 rounded-xl hover:border-blue-500 hover:text-blue-600 transition text-sm font-medium">
+                        <button type="button" id="financeAddAnotherBtn" onclick="FinanceManager.addRecordEntry()" class="w-full py-2 border-2 border-dashed border-blue-300 text-blue-500 bg-blue-50/50 rounded-xl hover:border-blue-500 hover:text-blue-600 transition text-sm font-medium">
                             <i class="fas fa-plus mr-1"></i> Add Another Item
                         </button>
                         <div class="pt-4 flex gap-3">
+                            <button type="button" id="financeDeleteBtn" class="hidden px-4 py-2 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition shadow-sm" title="Delete Transaction"><i class="fas fa-trash"></i></button>
                             <button type="button" onclick="FinanceManager.closeRecordForm()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition shadow-sm">Cancel</button>
                             <button type="submit" id="financeSubmitBtn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition shadow-sm">Save Records</button>
                         </div>
