@@ -58,7 +58,8 @@ export const FinanceForm = {
     },
 
     editRecord(id) {
-        const tx = this.rawData.transactions.find(t => (t.ID || t.id || t.Entry_ID) == id);
+        // Updated to include all possible ID mappings to match UI rendering
+        const tx = this.rawData.transactions.find(t => (t.ID || t.id || t.Entry_ID || t.Transaction_ID || t.Record_ID || t.transaction_id) == id);
         if (!tx) return;
         
         this.recordEntries = [];
@@ -85,7 +86,8 @@ export const FinanceForm = {
         this.addRecordEntry();
         
         const idx = 0;
-        document.getElementById(`finId_${idx}`).value = tx.ID || tx.id || tx.Entry_ID;
+        // Apply updated mappings here too
+        document.getElementById(`finId_${idx}`).value = tx.ID || tx.id || tx.Entry_ID || tx.Transaction_ID || tx.Record_ID || tx.transaction_id;
         document.getElementById(`finDate_${idx}`).value = tx.Date || '';
         document.getElementById(`finType_${idx}`).value = tx.Type || 'Expense';
         document.getElementById(`finAmt_${idx}`).value = tx.Amount || '';
