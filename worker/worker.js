@@ -217,23 +217,46 @@ export default {
         }
 
         if (body.action === 'add_finance_records') {
-          const stmt = env.DB.prepare(`
+          const insertStmt = env.DB.prepare(`
             INSERT INTO Finance_Transactions 
             (Transaction_ID, User_ID, Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount, Project_ID, Attachment) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `);
 
+          const updateStmt = env.DB.prepare(`
+            UPDATE Finance_Transactions 
+            SET Date = ?, Type = ?, Main_Group = ?, Sub_Group_1 = ?, Sub_Group_2 = ?, Sub_Group_3 = ?, Sub_Group_4 = ?, Sub_Group_5 = ?, Description = ?, Amount = ?, Project_ID = ?, Attachment = COALESCE(?, Attachment)
+            WHERE Transaction_ID = ? AND User_ID = ?
+          `);
+
           const batchList = body.records.map(record => {
-            const transId = crypto.randomUUID();
-            return stmt.bind(
-              transId, userId, record.date, record.type, record.group, 
-              record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
-              record.description, record.amount, record.projectId || null, record.attachment || null
-            );
+            if (record.id) {
+                // If ID is provided, update existing record
+                return updateStmt.bind(
+                  record.date, record.type, record.group, 
+                  record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
+                  record.description, record.amount, record.projectId || null, record.attachment || null,
+                  record.id, userId
+                );
+            } else {
+                // Otherwise, insert new record
+                const transId = crypto.randomUUID();
+                return insertStmt.bind(
+                  transId, userId, record.date, record.type, record.group, 
+                  record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
+                  record.description, record.amount, record.projectId || null, record.attachment || null
+                );
+            }
           });
 
           await env.DB.batch(batchList);
           return new Response(JSON.stringify({ status: "success", count: batchList.length }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'delete_finance_record') {
+          await env.DB.prepare("DELETE FROM Finance_Transactions WHERE Transaction_ID = ? AND User_ID = ?")
+            .bind(body.recordId, userId).run();
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
         return new Response(JSON.stringify({ status: "error", message: "Unknown action" }), { headers: { "content-type": "application/json", ...corsHeaders } });
