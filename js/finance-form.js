@@ -58,7 +58,6 @@ export const FinanceForm = {
     },
 
     editRecord(id) {
-        // Updated to include all possible ID mappings to match UI rendering
         const tx = this.rawData.transactions.find(t => (t.ID || t.id || t.Entry_ID || t.Transaction_ID || t.Record_ID || t.transaction_id) == id);
         if (!tx) return;
         
@@ -86,7 +85,6 @@ export const FinanceForm = {
         this.addRecordEntry();
         
         const idx = 0;
-        // Apply updated mappings here too
         document.getElementById(`finId_${idx}`).value = tx.ID || tx.id || tx.Entry_ID || tx.Transaction_ID || tx.Record_ID || tx.transaction_id;
         document.getElementById(`finDate_${idx}`).value = tx.Date || '';
         document.getElementById(`finType_${idx}`).value = tx.Type || 'Expense';
@@ -100,6 +98,15 @@ export const FinanceForm = {
         if (tx.Sub_Group_3) { this.showNextSubgroup(idx, 3); document.getElementById(`finSubGroup3_${idx}`).value = tx.Sub_Group_3; }
         if (tx.Sub_Group_4) { this.showNextSubgroup(idx, 4); document.getElementById(`finSubGroup4_${idx}`).value = tx.Sub_Group_4; }
         if (tx.Sub_Group_5) { this.showNextSubgroup(idx, 5); document.getElementById(`finSubGroup5_${idx}`).value = tx.Sub_Group_5; }
+
+        // Load existing image if available
+        if (tx.Attachment) {
+            document.getElementById(`finExistingFile_${idx}`).value = tx.Attachment;
+            const fileBadge = document.getElementById(`finFileBadge_${idx}`);
+            fileBadge.classList.remove('hidden');
+            // Use blue badge to indicate an existing attached image rather than a newly uploaded one
+            fileBadge.className = 'absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 border border-white rounded-full';
+        }
 
         document.getElementById('financeRecordModal').classList.remove('hidden');
     },
@@ -226,11 +233,12 @@ export const FinanceForm = {
                     <input type="number" id="finAmt_${idx}" class="w-full pl-4 pr-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] font-bold text-gray-800 outline-none focus:ring-1 focus:ring-blue-500" placeholder="0.00" step="0.01" required>
                 </div>
                 <div class="flex items-center justify-center px-1">
-                    <label for="finFile_${idx}" title="Add Image" class="cursor-pointer text-gray-400 hover:text-blue-500 transition relative">
+                    <label for="finFile_${idx}" title="Add/Update Image" class="cursor-pointer text-gray-400 hover:text-blue-500 transition relative">
                         <i class="fas fa-image text-[14px]"></i>
                         <span id="finFileBadge_${idx}" class="hidden absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 border border-white rounded-full"></span>
                     </label>
-                    <input type="file" id="finFile_${idx}" accept="image/*" class="hidden" onchange="document.getElementById('finFileBadge_${idx}').classList.remove('hidden')">
+                    <input type="file" id="finFile_${idx}" accept="image/*" class="hidden" onchange="document.getElementById('finFileBadge_${idx}').classList.remove('hidden'); document.getElementById('finFileBadge_${idx}').className='absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 border border-white rounded-full';">
+                    <input type="hidden" id="finExistingFile_${idx}">
                 </div>
             </div>
 
@@ -306,7 +314,9 @@ export const FinanceForm = {
             const projName = document.getElementById(`finProject_${idx}`)?.value;
             
             const fileInput = document.getElementById(`finFile_${idx}`);
-            let attachmentData = null;
+            
+            // Default to existing attachment if available
+            let attachmentData = document.getElementById(`finExistingFile_${idx}`)?.value || null;
 
             if (fileInput && fileInput.files.length > 0) {
                 try {
