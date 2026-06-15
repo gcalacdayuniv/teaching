@@ -38,39 +38,36 @@ export const FinanceUI = {
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col">
-                
-                <div class="mb-4 shrink-0 bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-gray-800 text-base sm:text-lg flex items-center gap-2">
-                            <i class="fas fa-book text-blue-500"></i> Ledgers & Categories
-                        </h3>
-                        <div class="flex gap-2">
-                            <button onclick="FinanceManager.openNewProjectModal()" class="group relative bg-white border border-indigo-200 hover:border-indigo-400 text-indigo-600 hover:bg-indigo-50 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-1.5">
-                                <i class="fas fa-folder-plus group-hover:scale-110 transition-transform"></i> <span class="hidden sm:inline">Project</span>
-                            </button>
-                            <button onclick="FinanceManager.openRecordForm()" class="group relative bg-blue-600 hover:bg-blue-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-1.5">
-                                <i class="fas fa-receipt group-hover:scale-110 transition-transform"></i> <span class="hidden sm:inline">Record</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-1 sm:gap-2 bg-gray-50 p-1.5 sm:p-2 rounded-xl border border-gray-100 w-full min-w-0">
-                        <div class="relative flex-1 min-w-0">
-                            <input type="date" id="finFilterFrom" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
-                        </div>
-                        <span class="text-[10px] sm:text-xs text-gray-400 font-semibold shrink-0"><i class="fas fa-arrow-right"></i></span>
-                        <div class="relative flex-1 min-w-0">
-                            <input type="date" id="finFilterTo" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
-                        </div>
-                        <button onclick="FinanceManager.clearFilter()" class="bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-400 px-2 sm:px-3 py-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0" title="Clear Dates">
-                            <i class="fas fa-times"></i>
+            <div class="shrink-0 bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg flex items-center gap-2">
+                        <i class="fas fa-book text-blue-500"></i> Ledgers & Categories
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="FinanceManager.openNewProjectModal()" class="group relative bg-white border border-indigo-200 hover:border-indigo-400 text-indigo-600 hover:bg-indigo-50 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fas fa-folder-plus group-hover:scale-110 transition-transform"></i> <span class="hidden sm:inline">Project</span>
+                        </button>
+                        <button onclick="FinanceManager.openRecordForm()" class="group relative bg-blue-600 hover:bg-blue-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-1.5">
+                            <i class="fas fa-receipt group-hover:scale-110 transition-transform"></i> <span class="hidden sm:inline">Record</span>
                         </button>
                     </div>
                 </div>
-                
-                <div id="financeGroupsContainer" class="space-y-3 pb-4">
+
+                <div class="flex items-center gap-1 sm:gap-2 bg-gray-50 p-1.5 sm:p-2 rounded-xl border border-gray-100 w-full min-w-0">
+                    <div class="relative flex-1 min-w-0">
+                        <input type="date" id="finFilterFrom" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
+                    </div>
+                    <span class="text-[10px] sm:text-xs text-gray-400 font-semibold shrink-0"><i class="fas fa-arrow-right"></i></span>
+                    <div class="relative flex-1 min-w-0">
+                        <input type="date" id="finFilterTo" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
+                    </div>
+                    <button onclick="FinanceManager.clearFilter()" class="bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-400 px-2 sm:px-3 py-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0" title="Clear Dates">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
+            </div>
+            
+            <div id="financeGroupsContainer" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-4 pr-1 min-h-0">
             </div>
         </div>
 
