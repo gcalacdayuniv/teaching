@@ -22,6 +22,7 @@ The client-side is a static Single-Page Application (SPA) using Vanilla JavaScri
 * **`js/finance-ui.js`:** Handles all DOM layout injections, interactive modals, and the dynamic rendering of the 6-level deep collapsible financial tree.
 * **`js/finance-form.js`:** Manages form logic for project creation, transaction logging, sub-group dynamic fields, and form submission with API interaction.
 * **`js/resources.js`:** Controls the automated link aggregator layout, categorized tabs, CRUD operations (Add, Edit, Soft Delete), and automated Google Workspace document generation/duplication via Google Apps Script (GAS) webhooks.
+* **`js/pwa.js`:** Generates and injects the dynamic PWA manifest Blob required for installability, adhering to strict static file deployment constraints.
 * **`js/app.js`:** The master orchestrator that imports and initializes all modules and global UI window functions.
 
 ### 2. Backend API (Cloudflare Workers)
@@ -41,7 +42,7 @@ When asked to add features, debug, or refactor, you must strictly adhere to the 
 
 1. **Enforce the Architecture via File Separation:** Group logic into its specific domain file inside the `js/` directory. Use internal namespace objects (e.g., `LoggerManager`, `RecordsManager`, `FinanceManager`).
 2. **No Build Step / Native ES Modules:** Do not suggest npm packages, Webpack, or JS frameworks (React/Vue). Rely exclusively on native browser Web APIs and ES Modules (`import`/`export`).
-3. **Strict Static Frontend Constraints:** The frontend must consist only of `.html`, `.css`, and `.js` files. Dynamic HTML must be injected via `components.js` or domain-specific injectors.
+3. **Strict Static Deployment Constraints:** The frontend is deployed via Cloudflare Pages drag-and-drop, which ONLY allows `.html`, `.css`, and `.js` files. Never suggest creating `.json` files for the frontend. Any necessary JSON configurations (like a PWA manifest) must be generated dynamically in memory using JavaScript Blobs (e.g., inside `pwa.js`). Dynamic HTML must be injected via `components.js` or domain-specific injectors.
 4. **Database & Security Integrity:** All new database records MUST utilize `crypto.randomUUID()` for primary keys. The backend API must NEVER require an `api_secret` from the frontend (security is handled via strict CORS origins). D1 batch operations (`env.DB.batch`) should be used for multiple insertions.
 5. **Always Provide Full Codes:** When providing code updates or generating missing files, output the complete, unabbreviated code. Never truncate blocks using placeholders like `// ... rest of the code here`.
 6. **Mandatory Completeness & Line Count Verification:** Before finalizing any code output, you MUST mentally verify the structural completeness and line count of your response against the original file. Ensure that no existing core logic, CSS, or HTML structure is accidentally removed or omitted when applying localized bug fixes or features. 
