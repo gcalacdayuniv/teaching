@@ -40,8 +40,14 @@ export const FinanceManager = {
                 const fromInput = document.getElementById('finFilterFrom');
                 if (!fromInput.value) {
                     const now = new Date();
-                    const year = now.getFullYear();
-                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    // Setup GMT+8 default filtering
+                    const dateStrManila = new Intl.DateTimeFormat('en-CA', { 
+                        timeZone: 'Asia/Manila', 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit' 
+                    }).format(now);
+                    const [year, month] = dateStrManila.split('-');
                     fromInput.value = `${year}-${month}-01`;
                 }
 
@@ -66,7 +72,20 @@ export const FinanceManager = {
 
         const dateFilter = (dateString) => {
             if (!fromDate && !toDate) return true;
-            const d = new Date(dateString);
+            
+            let d;
+            try {
+                const manilaStr = new Intl.DateTimeFormat('en-US', { 
+                    timeZone: 'Asia/Manila', 
+                    year: 'numeric', 
+                    month: 'numeric', 
+                    day: 'numeric' 
+                }).format(new Date(dateString));
+                d = new Date(manilaStr);
+            } catch (e) {
+                d = new Date(dateString);
+            }
+
             d.setHours(0,0,0,0);
             if (fromDate && d < fromDate) return false;
             if (toDate && d > toDate) return false;
