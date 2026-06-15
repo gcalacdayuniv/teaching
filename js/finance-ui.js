@@ -1,4 +1,19 @@
 export const FinanceUI = {
+    getGMT8Date(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            return new Intl.DateTimeFormat('en-CA', { 
+                timeZone: 'Asia/Manila', 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit' 
+            }).format(d);
+        } catch (e) {
+            return dateStr;
+        }
+    },
+
     injectComponent() {
         const mainView = document.getElementById('main-view');
         
@@ -136,10 +151,10 @@ export const FinanceUI = {
 
         const aggregatedEarnings = {};
         teachingHours.forEach(th => {
-            const date = th.Date_Paid || th.Date;
+            const date = this.getGMT8Date(th.Date_Paid || th.Date);
             const uni = th.University || 'Unknown';
             const col = th.College || th.Department || 'Unknown';
-            const subj = th.Subject || 'Unknown';
+            const subj = th.Subject_Code || th.Subject || 'Unknown';
             
             const key = `${date}_${uni}_${col}_${subj}`;
 
@@ -171,9 +186,10 @@ export const FinanceUI = {
 
         transactions.forEach(t => {
             const amt = parseFloat(t.Amount);
+            const formattedDate = this.getGMT8Date(t.Date);
             const record = {
                 rawId: t.ID || t.id || t.Entry_ID || t.Transaction_ID || t.Record_ID || t.transaction_id || null,
-                date: t.Date, type: t.Type, group: t.Main_Group,
+                date: formattedDate, type: t.Type, group: t.Main_Group,
                 subGroup1: t.Sub_Group_1, subGroup2: t.Sub_Group_2, subGroup3: t.Sub_Group_3, subGroup4: t.Sub_Group_4, subGroup5: t.Sub_Group_5,
                 desc: t.Description, amount: amt, projectId: t.Project_ID, attachment: t.Attachment
             };
@@ -304,7 +320,6 @@ export const FinanceUI = {
                 const sign = isIncome ? '+' : '-';
                 const colorClass = isIncome ? 'text-green-600' : 'text-red-600';
                 
-                // Added event.stopPropagation() and z-index to prevent conflicting row clicks
                 const attachBtn = r.attachment ? `<button type="button" onclick="event.stopPropagation(); FinanceManager.viewImage(this.dataset.img)" data-img="${r.attachment}" class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 mt-1 transition cursor-pointer relative z-10"><i class="fas fa-image"></i> Image</button>` : '';
                 
                 const actionMenu = r.rawId ? `
@@ -314,7 +329,6 @@ export const FinanceUI = {
                     </button>
                 </td>` : `<td class="w-6"></td>`;
 
-                // Made the entire row clickable to edit, solving the un-selectable issue
                 const rowEvents = r.rawId ? `
                     onclick="FinanceManager.editRecord('${r.rawId}')"
                     oncontextmenu="event.preventDefault(); FinanceManager.editRecord('${r.rawId}');"
