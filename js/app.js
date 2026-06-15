@@ -6,6 +6,7 @@ import { LoggerManager } from './hours-logger.js';
 import { RecordsManager } from './records-viewer.js';
 import { ProfileManager } from './profile.js';
 import { FinanceManager } from './finance.js';
+import { PWA } from './pwa.js';
 
 initApp();
 
@@ -16,6 +17,7 @@ function initApp() {
         
         setupUI();
 
+        PWA.init();
         AuthManager.init();
         AppRouter.init();
         LoggerManager.init();
