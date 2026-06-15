@@ -18,7 +18,7 @@ export const FinanceUI = {
         const mainView = document.getElementById('main-view');
         
         const financeHtml = `
-        <div id="financePanel" class="app-view hidden flex-col w-full h-full max-w-4xl mx-auto space-y-4 pb-24">
+        <div id="financePanel" class="app-view hidden flex-col w-full h-full overflow-y-auto custom-scrollbar max-w-4xl mx-auto space-y-4 pb-24">
             
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 shrink-0">
                 <h2 class="text-sm font-bold text-gray-800 mb-2">Financial Overview</h2>
@@ -67,7 +67,7 @@ export const FinanceUI = {
                 </div>
             </div>
             
-            <div id="financeGroupsContainer" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-4 pr-1 min-h-0">
+            <div id="financeGroupsContainer" class="space-y-3 pb-4 pr-1">
             </div>
         </div>
 
