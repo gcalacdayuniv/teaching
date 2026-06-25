@@ -65,19 +65,34 @@ export const FinanceManager = {
 
     async loadExternalDatabases() {
         try {
-            console.log("Fetching imported database list...");
+            console.log("STEP 1: Fetching imported database list...");
+            
+            // Explicitly grab the user to guarantee User_ID is passed
+            const user = JSON.parse(localStorage.getItem('professionalPortalUser'));
+            if (!user || !user.User_ID) {
+                console.warn("STEP 1.5: No User_ID found in localStorage, cannot fetch imported databases.");
+                return;
+            }
+
             const importedRes = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { 
-                action: 'get_imported_databases' 
+                action: 'get_imported_databases',
+                User_ID: user.User_ID // FORCED INJECTION
             });
 
-            if ((importedRes.status === 'success' || importedRes.success) && importedRes.databases && importedRes.databases.length > 0) {
+            console.log("STEP 2: Response from Local API regarding Imported DBs:", importedRes);
+
+            // Check if successful and if there are actually databases returned
+            const isSuccess = importedRes.status === 'success' || importedRes.success === true;
+            
+            if (isSuccess && importedRes.databases && importedRes.databases.length > 0) {
+                console.log(`STEP 3: Found ${importedRes.databases.length} connected APIs. Beginning external fetch loop...`);
                 let externalTransactions = [];
 
                 for (const db of importedRes.databases) {
                     try {
-                        console.log(`Pinging external API: ${db.Project_Name} at ${db.API_URL}`);
+                        console.log(`STEP 4 [${db.Project_Name}]: Pinging URL -> ${db.API_URL}`);
                         
-                        // We must inject a mock project so the UI grouping logic doesn't ignore these transactions
+                        // Inject a mock project so the UI grouping logic doesn't ignore these transactions
                         if (!this.rawData.projects.find(p => p.Project_ID === db.ID)) {
                             this.rawData.projects.push({
                                 Project_ID: db.ID,
@@ -93,41 +108,47 @@ export const FinanceManager = {
                         });
                         
                         const extData = await extRes.json();
-                        console.log(`Response from ${db.Project_Name}:`, extData);
+                        console.log(`STEP 5 [${db.Project_Name}]: Data received ->`, extData);
 
                         if (extData.success && extData.data && extData.data.transactions) {
                             const mapped = extData.data.transactions.map(t => ({
                                 Transaction_ID: t.id,
                                 Date: t.date,
-                                Type: t.type === 'Income' ? 'Income' : 'Expense', // Strict coercion
+                                Type: t.type === 'Income' ? 'Income' : 'Expense',
                                 Main_Group: db.Project_Name,  
                                 Sub_Group_1: t.project_name || 'Imported Data', 
-                                Sub_Group_2: '', // Filled to prevent UI rendering crashes
+                                Sub_Group_2: '', 
                                 Sub_Group_3: '',
                                 Sub_Group_4: '',
                                 Sub_Group_5: '',
                                 Description: t.description,
                                 Amount: Number(t.amount),
-                                Project_ID: db.ID, // Links to the mock project we just injected
+                                Project_ID: db.ID, 
                                 isExternal: true              
                             }));
                             externalTransactions.push(...mapped);
-                            console.log(`Successfully mapped ${mapped.length} records from ${db.Project_Name}`);
+                            console.log(`STEP 6 [${db.Project_Name}]: Successfully mapped ${mapped.length} records.`);
+                        } else {
+                            console.warn(`STEP 6 [${db.Project_Name}]: API returned success false, or transactions array was missing.`);
                         }
                     } catch (e) {
-                        console.error(`Failed to fetch from external API (${db.Project_Name}):`, e);
+                        console.error(`ERROR [${db.Project_Name}]: Failed to fetch or parse.`, e);
                     }
                 }
 
                 if (externalTransactions.length > 0) {
+                    console.log(`STEP 7: Merging ${externalTransactions.length} external records into the UI...`);
                     this.rawData.transactions = [...(this.rawData.transactions || []), ...externalTransactions];
-                    this.applyFilter(); // Refresh DOM with new combined data
+                    this.applyFilter(); // Refresh DOM
+                    console.log("STEP 8: UI successfully refreshed with combined data.");
                 } else {
-                    console.log("No valid external transactions were found to merge.");
+                    console.log("STEP 7: Loop finished, but no valid transactions were gathered from the external APIs.");
                 }
+            } else {
+                console.log("STEP 3: Process stopped. Reason: API returned false OR databases array is empty.", importedRes);
             }
         } catch (error) {
-            console.error("Error processing external databases:", error);
+            console.error("CRITICAL ERROR in loadExternalDatabases:", error);
         }
     },
 
@@ -160,7 +181,7 @@ export const FinanceManager = {
                 d = new Date(dateString);
             }
 
-            if (isNaN(d.getTime())) return false; // Fail-safe for invalid dates
+            if (isNaN(d.getTime())) return false; 
             d.setHours(0,0,0,0);
             
             if (fromDate && d < fromDate) return false;
@@ -174,7 +195,6 @@ export const FinanceManager = {
         const filteredTx = currentTx.filter(t => dateFilter(t.Date));
         const filteredTh = currentTh.filter(th => dateFilter(th.Date_Paid || th.Date));
 
-        // Note: this.rawData.projects now contains the mock projects for the external APIs
         this.renderCards(filteredTx, filteredTh, this.rawData.projects || []);
     }
 };
