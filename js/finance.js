@@ -25,6 +25,10 @@ export const FinanceManager = {
 
     async refreshLedger() {
         try {
+            const user = JSON.parse(localStorage.getItem('professionalPortalUser'));
+            if (!user) return;
+
+            // 1. Fetch & Render Local Data First (Instant Load)
             const [ledgerRes, projRes] = await Promise.all([
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_finance_ledger' }),
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' })
@@ -32,9 +36,9 @@ export const FinanceManager = {
 
             if (ledgerRes.status === 'success' && projRes.status === 'success') {
                 this.rawData = {
-                    transactions: ledgerRes.transactions,
-                    teachingHours: ledgerRes.teachingHours,
-                    projects: projRes.projects
+                    transactions: ledgerRes.transactions || [],
+                    teachingHours: ledgerRes.teachingHours || [],
+                    projects: projRes.projects || []
                 };
 
                 const fromInput = document.getElementById('finFilterFrom');
@@ -52,9 +56,65 @@ export const FinanceManager = {
                 }
 
                 this.applyFilter();
+
+                // 2. Fetch External Databases using the Unique Action Contract
+                this.loadExternalDatabases(user.User_ID);
             }
         } catch (err) {
             console.error("Failed to load finance data:", err);
+        }
+    },
+
+    async loadExternalDatabases(userId) {
+        try {
+            // Get the list of saved external API URLs
+            const importedRes = await fetch(window.APP_CONFIG?.API_URL || CONFIG.API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_imported_databases', User_ID: userId })
+            }).then(res => res.json()).catch(() => ({ databases: [] }));
+
+            if (importedRes.success && importedRes.databases && importedRes.databases.length > 0) {
+                let externalTransactions = [];
+
+                for (const db of importedRes.databases) {
+                    try {
+                        const extRes = await fetch(db.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            // USING THE UNIQUE ACTION NAME
+                            body: JSON.stringify({ action: 'ProfessionalFinanceDashboard' }) 
+                        });
+                        
+                        const response = await extRes.json();
+
+                        // 3. Dynamic Mapping (Accepts data only if it follows the Standard Contract)
+                        if (response.success && response.data && response.data.transactions) {
+                            const mapped = response.data.transactions.map(t => ({
+                                Transaction_ID: t.id,
+                                Date: t.date,
+                                Type: t.type,
+                                Main_Group: db.Project_Name,  // Groups it under the API name (e.g. "Etch Data")
+                                Sub_Group_1: t.project_name,  // The specific project from that API
+                                Description: t.description,
+                                Amount: Number(t.amount),
+                                isExternal: true              // Locks the record from being edited locally
+                            }));
+                            externalTransactions.push(...mapped);
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to fetch external ledger from ${db.Project_Name}:`, e);
+                    }
+                }
+
+                // If external records were fetched, append them and refresh the UI silently
+                if (externalTransactions.length > 0) {
+                    this.rawData.transactions = [...this.rawData.transactions, ...externalTransactions];
+                    this.applyFilter();
+                }
+            }
+        } catch (error) {
+            console.error("Error processing external databases:", error);
         }
     },
 
