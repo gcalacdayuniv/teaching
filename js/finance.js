@@ -81,7 +81,6 @@ export const FinanceManager = {
 
             console.log("STEP 2: Response from Local API regarding Imported DBs:", importedRes);
 
-            // Check if successful and if there are actually databases returned
             const isSuccess = importedRes.status === 'success' || importedRes.success === true;
             
             if (isSuccess && importedRes.databases && importedRes.databases.length > 0) {
@@ -90,15 +89,13 @@ export const FinanceManager = {
 
                 for (const db of importedRes.databases) {
                     try {
-                        // Fallback logic for blank or null project names
-                        const projectName = (db.Project_Name && db.Project_Name.trim() !== '') 
-                            ? db.Project_Name.trim() 
-                            : `Imported DB (${db.ID})`;
+                        const hasProjectName = db.Project_Name && db.Project_Name.trim() !== '';
+                        const projectName = hasProjectName ? db.Project_Name.trim() : null;
 
-                        console.log(`STEP 4 [${projectName}]: Pinging URL -> ${db.API_URL}`);
+                        console.log(`STEP 4 [${hasProjectName ? projectName : 'Ordinary Ledger'}]: Pinging URL -> ${db.API_URL}`);
                         
-                        // Inject a mock project so the UI grouping logic doesn't ignore these transactions
-                        if (!this.rawData.projects.find(p => p.Project_ID === db.ID)) {
+                        // Only inject a mock project if there is an actual project name
+                        if (hasProjectName && !this.rawData.projects.find(p => p.Project_ID === db.ID)) {
                             this.rawData.projects.push({
                                 Project_ID: db.ID,
                                 Name: projectName,
@@ -113,14 +110,14 @@ export const FinanceManager = {
                         });
                         
                         const extData = await extRes.json();
-                        console.log(`STEP 5 [${projectName}]: Data received ->`, extData);
+                        console.log(`STEP 5 [${hasProjectName ? projectName : 'Ordinary Ledger'}]: Data received ->`, extData);
 
                         if (extData.success && extData.data && extData.data.transactions) {
                             const mapped = extData.data.transactions.map(t => ({
                                 Transaction_ID: t.id,
                                 Date: t.date,
                                 Type: t.type === 'Income' ? 'Income' : 'Expense',
-                                Main_Group: projectName,  
+                                Main_Group: hasProjectName ? projectName : '',  
                                 Sub_Group_1: t.project_name || 'Imported Data', 
                                 Sub_Group_2: '', 
                                 Sub_Group_3: '',
@@ -128,13 +125,13 @@ export const FinanceManager = {
                                 Sub_Group_5: '',
                                 Description: t.description,
                                 Amount: Number(t.amount),
-                                Project_ID: db.ID, 
+                                Project_ID: hasProjectName ? db.ID : null, // Null integrates it as an ordinary income/expense
                                 isExternal: true              
                             }));
                             externalTransactions.push(...mapped);
-                            console.log(`STEP 6 [${projectName}]: Successfully mapped ${mapped.length} records.`);
+                            console.log(`STEP 6 [${hasProjectName ? projectName : 'Ordinary Ledger'}]: Successfully mapped ${mapped.length} records.`);
                         } else {
-                            console.warn(`STEP 6 [${projectName}]: API returned success false, or transactions array was missing.`);
+                            console.warn(`STEP 6 [${hasProjectName ? projectName : 'Ordinary Ledger'}]: API returned success false, or transactions array was missing.`);
                         }
                     } catch (e) {
                         console.error(`ERROR Pinging DB [${db.ID}]: Failed to fetch or parse.`, e);
@@ -144,7 +141,7 @@ export const FinanceManager = {
                 if (externalTransactions.length > 0) {
                     console.log(`STEP 7: Merging ${externalTransactions.length} external records into the UI...`);
                     this.rawData.transactions = [...(this.rawData.transactions || []), ...externalTransactions];
-                    this.applyFilter(); // Refresh DOM
+                    this.applyFilter();
                     console.log("STEP 8: UI successfully refreshed with combined data.");
                 } else {
                     console.log("STEP 7: Loop finished, but no valid transactions were gathered from the external APIs.");
