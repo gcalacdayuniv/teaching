@@ -28,7 +28,7 @@ export const FinanceManager = {
             const user = JSON.parse(localStorage.getItem('professionalPortalUser'));
             if (!user) return;
 
-            // 1. Fetch & Render Local Data First (Instant Load)
+            // 1. ALWAYS FETCH LOCAL DATA FIRST
             const [ledgerRes, projRes] = await Promise.all([
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_finance_ledger' }),
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' })
@@ -55,9 +55,11 @@ export const FinanceManager = {
                     fromInput.value = `${year}-${month}-01`;
                 }
 
+                // 2. RENDER LOCAL DATA IMMEDIATELY
                 this.applyFilter();
 
-                // 2. Fetch External Databases using the Unique Action Contract
+                // 3. FETCH EXTERNAL DATA IN THE BACKGROUND
+                // Notice there is no 'await' here. It runs without blocking the UI.
                 this.loadExternalDatabases(user.User_ID);
             }
         } catch (err) {
@@ -67,47 +69,49 @@ export const FinanceManager = {
 
     async loadExternalDatabases(userId) {
         try {
-            // Get the list of saved external API URLs
-            const importedRes = await fetch(window.APP_CONFIG?.API_URL || CONFIG.API_URL, {
+            // Ask the local database for the user's saved API links
+            const response = await fetch(window.APP_CONFIG?.API_URL || CONFIG.API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'get_imported_databases', User_ID: userId })
-            }).then(res => res.json()).catch(() => ({ databases: [] }));
+            });
+            const importedRes = await response.json();
 
             if (importedRes.success && importedRes.databases && importedRes.databases.length > 0) {
                 let externalTransactions = [];
 
                 for (const db of importedRes.databases) {
                     try {
+                        // Call the external API expecting the Standard Contract
                         const extRes = await fetch(db.API_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            // USING THE UNIQUE ACTION NAME
                             body: JSON.stringify({ action: 'ProfessionalFinanceDashboard' }) 
                         });
                         
-                        const response = await extRes.json();
+                        const extData = await extRes.json();
 
-                        // 3. Dynamic Mapping (Accepts data only if it follows the Standard Contract)
-                        if (response.success && response.data && response.data.transactions) {
-                            const mapped = response.data.transactions.map(t => ({
+                        // If standard data is found, map it to our UI format
+                        if (extData.success && extData.data && extData.data.transactions) {
+                            const mapped = extData.data.transactions.map(t => ({
                                 Transaction_ID: t.id,
                                 Date: t.date,
                                 Type: t.type,
-                                Main_Group: db.Project_Name,  // Groups it under the API name (e.g. "Etch Data")
-                                Sub_Group_1: t.project_name,  // The specific project from that API
+                                Main_Group: db.Project_Name,  // e.g. "Etch Data"
+                                Sub_Group_1: t.project_name,  // The specific project passed by the API
                                 Description: t.description,
                                 Amount: Number(t.amount),
-                                isExternal: true              // Locks the record from being edited locally
+                                isExternal: true              // Prevents editing in the local UI
                             }));
                             externalTransactions.push(...mapped);
                         }
                     } catch (e) {
-                        console.warn(`Failed to fetch external ledger from ${db.Project_Name}:`, e);
+                        // If one external API is offline or fails, it just logs it and moves to the next one
+                        console.warn(`Failed to fetch from ${db.Project_Name}:`, e);
                     }
                 }
 
-                // If external records were fetched, append them and refresh the UI silently
+                // If any external data was successfully fetched, merge it and update the screen
                 if (externalTransactions.length > 0) {
                     this.rawData.transactions = [...this.rawData.transactions, ...externalTransactions];
                     this.applyFilter();
