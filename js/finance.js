@@ -25,85 +25,16 @@ export const FinanceManager = {
 
     async refreshLedger() {
         try {
-            const user = JSON.parse(localStorage.getItem('professionalPortalUser'));
-            if (!user) return;
-
-            // Fetch Local Ledger, Projects, and Imported Databases concurrently
-            const [ledgerRes, projRes, importedRes] = await Promise.all([
+            const [ledgerRes, projRes] = await Promise.all([
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_finance_ledger' }),
-                API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' }),
-                fetch(window.APP_CONFIG?.API_URL || CONFIG.API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_imported_databases', User_ID: user.User_ID })
-                }).then(res => res.json()).catch(() => ({ databases: [] }))
+                API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' })
             ]);
 
-            let externalTransactions = [];
-
-            // If we have connected external API APIs (like Etch), fetch and map their data
-            if (importedRes.success && importedRes.databases && importedRes.databases.length > 0) {
-                for (const db of importedRes.databases) {
-                    try {
-                        const extRes = await fetch(db.API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            // Requesting as Superuser to retrieve all global and project-specific ledgers from Etch
-                            body: JSON.stringify({ action: 'getDashboardData', data: { role: 'Superuser' } })
-                        });
-                        
-                        const extData = await extRes.json();
-
-                        if (extData.success && extData.data) {
-                            const projects = extData.data.projects || [];
-                            const fixedCosts = extData.data.fixedCosts || [];
-
-                            // Map Etch Project ledgers to Teaching App format
-                            projects.forEach(p => {
-                                (p.transactions || []).forEach(t => {
-                                    externalTransactions.push({
-                                        Transaction_ID: t.id,
-                                        Date: t.created_at,
-                                        Type: t.type === 'Income' ? 'Income' : 'Expense',
-                                        Main_Group: db.Project_Name,      // Organizes under the connected DB Name (e.g. "Etch Data")
-                                        Sub_Group_1: p.name,              // Etch Project Name
-                                        Sub_Group_2: t.type,              // Etch type (Expense, Abono, etc)
-                                        Description: t.description + (t.agent_name ? ` (by ${t.agent_name})` : ''),
-                                        Amount: t.amount,
-                                        Project_ID: p.id,
-                                        isExternal: true                  // Flag to prevent local edits/deletes
-                                    });
-                                });
-                            });
-
-                            // Map Etch Global Fixed Costs to Teaching App format
-                            fixedCosts.forEach(t => {
-                                externalTransactions.push({
-                                    Transaction_ID: t.id,
-                                    Date: t.created_at,
-                                    Type: 'Expense',
-                                    Main_Group: db.Project_Name,
-                                    Sub_Group_1: 'Global Fixed Costs',
-                                    Sub_Group_2: t.type,
-                                    Description: t.description + (t.agent_name ? ` (by ${t.agent_name})` : ''),
-                                    Amount: t.amount,
-                                    Project_ID: 'GLOBAL',
-                                    isExternal: true
-                                });
-                            });
-                        }
-                    } catch (e) {
-                        console.warn(`Failed to fetch external ledger from ${db.Project_Name}:`, e);
-                    }
-                }
-            }
-
             if (ledgerRes.status === 'success' && projRes.status === 'success') {
-                // Combine locally tracked transactions with the dynamically pulled external ones
                 this.rawData = {
-                    transactions: [...(ledgerRes.transactions || []), ...externalTransactions],
-                    teachingHours: ledgerRes.teachingHours || [],
-                    projects: projRes.projects || []
+                    transactions: ledgerRes.transactions,
+                    teachingHours: ledgerRes.teachingHours,
+                    projects: projRes.projects
                 };
 
                 const fromInput = document.getElementById('finFilterFrom');
