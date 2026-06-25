@@ -65,23 +65,16 @@ export const FinanceManager = {
 
     async loadExternalDatabases() {
         try {
-            console.log("STEP 1: Fetching imported database list...");
+            console.log("STEP 1: Fetching imported database list via global API wrapper...");
             
-            // Explicitly grab the user to guarantee User_ID is passed
-            const user = JSON.parse(localStorage.getItem('professionalPortalUser'));
-            if (!user || !user.User_ID) {
-                console.warn("STEP 1.5: No User_ID found in localStorage, cannot fetch imported databases.");
-                return;
-            }
-
+            // Rely completely on your API wrapper to handle the User_ID, 
+            // exactly like get_finance_ledger does!
             const importedRes = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { 
-                action: 'get_imported_databases',
-                User_ID: user.User_ID // FORCED INJECTION
+                action: 'get_imported_databases' 
             });
 
             console.log("STEP 2: Response from Local API regarding Imported DBs:", importedRes);
 
-            // Check if successful and if there are actually databases returned
             const isSuccess = importedRes.status === 'success' || importedRes.success === true;
             
             if (isSuccess && importedRes.databases && importedRes.databases.length > 0) {
@@ -101,6 +94,7 @@ export const FinanceManager = {
                             });
                         }
 
+                        // Fetching the Standard Contract from the imported URL
                         const extRes = await fetch(db.API_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -150,7 +144,7 @@ export const FinanceManager = {
         } catch (error) {
             console.error("CRITICAL ERROR in loadExternalDatabases:", error);
         }
-    },
+    }
 
     clearFilter() {
         document.getElementById('finFilterFrom').value = '';
