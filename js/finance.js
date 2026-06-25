@@ -67,18 +67,16 @@ export const FinanceManager = {
         try {
             console.log("STEP 1: Fetching imported database list...");
             
-            // Fixed: Read from the correct key created by auth.js
             const user = JSON.parse(localStorage.getItem('teachingPortalUser'));
             
-            // Fixed: Check for either id or User_ID based on the auth session schema
             if (!user || (!user.id && !user.User_ID)) {
                 console.warn("STEP 1.5: No User ID found in localStorage, cannot fetch imported databases.");
                 return;
             }
 
             const importedRes = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { 
-                action: 'get_imported_databases',
-                User_ID: user.id || user.User_ID // Pass correct user ID
+                action: 'get_imported_dbs',
+                userId: user.id || user.User_ID 
             });
 
             console.log("STEP 2: Response from Local API regarding Imported DBs:", importedRes);
