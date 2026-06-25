@@ -25,10 +25,6 @@ export const FinanceManager = {
 
     async refreshLedger() {
         try {
-            const user = JSON.parse(localStorage.getItem('professionalPortalUser'));
-            if (!user) return;
-
-            // STEP 1: FETCH LOCAL TEACHING DATA FIRST
             const [ledgerRes, projRes] = await Promise.all([
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_finance_ledger' }),
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' })
@@ -36,15 +32,15 @@ export const FinanceManager = {
 
             if (ledgerRes.status === 'success' && projRes.status === 'success') {
                 this.rawData = {
-                    transactions: ledgerRes.transactions || [],
-                    teachingHours: ledgerRes.teachingHours || [],
-                    projects: projRes.projects || []
+                    transactions: ledgerRes.transactions,
+                    teachingHours: ledgerRes.teachingHours,
+                    projects: projRes.projects
                 };
 
-                // Setup Default Filtering for Current Month
                 const fromInput = document.getElementById('finFilterFrom');
                 if (!fromInput.value) {
                     const now = new Date();
+                    // Setup GMT+8 default filtering
                     const dateStrManila = new Intl.DateTimeFormat('en-CA', { 
                         timeZone: 'Asia/Manila', 
                         year: 'numeric', 
@@ -55,90 +51,10 @@ export const FinanceManager = {
                     fromInput.value = `${year}-${month}-01`;
                 }
 
-                // Render Local Data Immediately
                 this.applyFilter();
-
-                // STEP 2: FETCH IMPORTED DATABASES IN THE BACKGROUND
-                this.loadExternalDatabases(user.User_ID);
             }
         } catch (err) {
-            console.error("Failed to load local finance data:", err);
-        }
-    },
-
-    async loadExternalDatabases(userId) {
-        try {
-            // Get the list of saved external APIs
-            const importedRes = await fetch(window.APP_CONFIG?.API_URL || CONFIG.API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_imported_databases', User_ID: userId })
-            }).then(res => res.json()).catch(() => ({ databases: [] }));
-
-            if (importedRes.success && importedRes.databases && importedRes.databases.length > 0) {
-                let externalTransactions = [];
-
-                for (const db of importedRes.databases) {
-                    try {
-                        const extRes = await fetch(db.API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'getDashboardData', data: { role: 'Superuser' } })
-                        });
-                        
-                        const extData = await extRes.json();
-
-                        // STEP 3: THE TRANSLATOR LAYER
-                        // This maps Etch's different structure into the Teaching app's structure
-                        if (extData.success && extData.data) {
-                            const projects = extData.data.projects || [];
-                            const fixedCosts = extData.data.fixedCosts || [];
-
-                            projects.forEach(p => {
-                                (p.transactions || []).forEach(t => {
-                                    externalTransactions.push({
-                                        Transaction_ID: t.id,
-                                        Date: t.created_at, // Translating Etch 'created_at' to Teaching 'Date'
-                                        Type: t.type === 'Income' ? 'Income' : 'Expense',
-                                        Main_Group: db.Project_Name, // Forces Etch records into its own folder
-                                        Sub_Group_1: p.name,
-                                        Sub_Group_2: t.type,
-                                        Description: t.description + (t.agent_name ? ` (by ${t.agent_name})` : ''),
-                                        Amount: t.amount,
-                                        Project_ID: p.id,
-                                        isExternal: true // Prevents local edits
-                                    });
-                                });
-                            });
-
-                            fixedCosts.forEach(t => {
-                                externalTransactions.push({
-                                    Transaction_ID: t.id,
-                                    Date: t.created_at,
-                                    Type: 'Expense',
-                                    Main_Group: db.Project_Name,
-                                    Sub_Group_1: 'Global Fixed Costs',
-                                    Sub_Group_2: t.type,
-                                    Description: t.description + (t.agent_name ? ` (by ${t.agent_name})` : ''),
-                                    Amount: t.amount,
-                                    Project_ID: 'GLOBAL',
-                                    isExternal: true
-                                });
-                            });
-                        }
-                    } catch (e) {
-                        console.warn(`Failed to fetch external ledger from ${db.Project_Name}:`, e);
-                    }
-                }
-
-                // If we found external data, add it to our raw data and re-render the screen
-                if (externalTransactions.length > 0) {
-                    this.rawData.transactions = [...this.rawData.transactions, ...externalTransactions];
-                    this.applyFilter();
-                }
-            }
-        } catch (error) {
-            console.error("Error processing external databases:", error);
+            console.error("Failed to load finance data:", err);
         }
     },
 
