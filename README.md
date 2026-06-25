@@ -11,10 +11,10 @@ The client-side is a static Single-Page Application (SPA) using Vanilla JavaScri
 
 * **`index.html` & `styles.css`:** Main entry point, the static layout shell, bottom nav, and FAB. `index.html` loads the app via `<script type="module" src="./js/app.js"></script>`. Includes navigations for Records, Finance, Resources, and Profile to balance the UI.
 * **`js/globals.js`:** Core configurations (points to the Worker API domain), shared utilities (currency parsing and date formatting), and a centralized API wrapper (handling all fetch requests and JSON parsing). No secrets are stored here.
-* **`js/components.js`:** Manages dynamic injection of HTML components (Modals, Overlays, View Panels) via JavaScript template literals to keep `index.html` completely static.
+* **`js/components.js`:** Manages dynamic injection of HTML components (Modals, Overlays, View Panels), and the External Database Import UI elements to keep `index.html` completely static.
 * **`js/router.js`:** Hash-based client-side router (AppRouter). Manages view toggling.
 * **`js/auth.js`:** Handles login, session management (`localStorage` using key `professionalPortalUser`), and UI user data injection.
-* **`js/profile.js`:** Handles user profile updates (Name, Username, Email, Contact Number), secure password changes, and HTML5 Canvas Base64 image compression for avatar uploads.
+* **`js/profile.js`:** Handles user profile updates (Name, Username, Email, Contact Number), secure password changes, HTML5 Canvas Base64 image compression for avatar uploads, and managing external database API imports for the financial dashboard.
 * **`js/hours-logger.js`:** Features a Batch Session Generator. Auto-calculates End Time based on Start Time + Hours. Loops through dates (every 7 days) up to an End Date and submits an array of records to the backend.
 * **`js/records-viewer.js`:** Handles data fetching, flexible date filtering (Start to End), summary card calculations, the data table, batch-selection (Select All) checkboxes, executing the batch payment utility (Mark Paid), and rendering the interactive Payment History summary modals.
 * **`js/finance.js`:** The main orchestrator for the Finance Tracker module. It aggregates utilities, UI rendering, and form interactions, whilst managing global state and filter criteria.
@@ -26,7 +26,7 @@ The client-side is a static Single-Page Application (SPA) using Vanilla JavaScri
 * **`js/app.js`:** The master orchestrator that imports and initializes all modules and global UI window functions.
 
 ### 2. Backend API (Cloudflare Workers)
-* **`worker/worker.js`:** The centralized edge controller. It implements strict CORS headers locked to the frontend domain using environment variables (`env.ALLOWED_ORIGIN`). It parses payloads (`login`, `update_details`, `update_avatar`, `update_password`, `add_hours_batch`, `update_payment`, `add_resource`, `edit_resource`, `delete_resource`, `create_project`, `get_projects`, `get_finance_ledger`, `add_finance_records`), scopes requests strictly to the active `User_ID`, and securely executes native SQL queries using the Cloudflare D1 API (`env.DB.prepare`). Redirect chains (like GAS webhooks) are explicitly handled to prevent parsing crashes.
+* **`worker/worker.js`:** The centralized edge controller. It implements strict CORS headers locked to the frontend domain using environment variables (`env.ALLOWED_ORIGIN`). It parses payloads (`login`, `update_details`, `update_avatar`, `update_password`, `add_hours_batch`, `update_payment`, `add_resource`, `edit_resource`, `delete_resource`, `create_project`, `get_projects`, `get_finance_ledger`, `add_finance_records`, `add_imported_database`, `get_imported_databases`, `delete_imported_database`), scopes requests strictly to the active `User_ID`, and securely executes native SQL queries using the Cloudflare D1 API (`env.DB.prepare`). Redirect chains (like GAS webhooks) are explicitly handled to prevent parsing crashes.
 
 ### 3. Database Layer (Cloudflare D1 - Serverless SQLite)
 The database uses Universally Unique Identifiers (UUIDs) for all primary keys, generated on the edge via `crypto.randomUUID()`.
@@ -36,6 +36,7 @@ The database uses Universally Unique Identifiers (UUIDs) for all primary keys, g
 * **`Resource_Links`:** Resource_ID (UUID), User_ID (UUID), Category, Title, URL, Is_Deleted (Integer/Boolean).
 * **`Projects`:** Project_ID (UUID), User_ID (UUID), Name, Created_At.
 * **`Finance_Transactions`:** Transaction_ID (UUID), User_ID (UUID), Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount, Project_ID, Attachment (Base64).
+* **`Imported_Databases`:** ID (UUID), User_ID (UUID), Project_Name, API_URL, Created_At.
 
 ## Development Directives
 When asked to add features, debug, or refactor, you must strictly adhere to the following rules:
