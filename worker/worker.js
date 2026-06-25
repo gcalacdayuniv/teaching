@@ -1,3 +1,4 @@
+// gcalacdayuniv/teaching/teaching-e54f485eaa3ab29cd9083c6328eb56077623b774/worker/worker.js
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -97,6 +98,29 @@ export default {
         // --- SCOPED ENDPOINTS (Require userId) ---
         if (!['login', 'update_details', 'update_avatar', 'update_password'].includes(body.action) && !userId) {
             return new Response(JSON.stringify({ status: "error", message: "Unauthorized: Missing User ID" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        // --- IMPORTED DATABASES ROUTES ---
+        if (body.action === 'add_imported_db') {
+          const dbId = crypto.randomUUID();
+          await env.DB.prepare("INSERT INTO Imported_Databases (ID, User_ID, Project_Name, API_URL) VALUES (?, ?, ?, ?)")
+            .bind(dbId, body.id || userId, body.projectName, body.apiUrl).run();
+          return new Response(JSON.stringify({ status: "success", dbId }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'remove_imported_db') {
+          await env.DB.prepare("DELETE FROM Imported_Databases WHERE ID = ? AND User_ID = ?")
+            .bind(body.dbId, body.userId || userId).run();
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'get_imported_dbs') {
+          let databases = [];
+          try {
+            const { results } = await env.DB.prepare("SELECT * FROM Imported_Databases WHERE User_ID = ? ORDER BY Project_Name ASC").bind(body.userId || userId).all();
+            databases = results;
+          } catch(e) { }
+          return new Response(JSON.stringify({ status: "success", databases }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
         if (body.action === 'add_hours_batch') {
