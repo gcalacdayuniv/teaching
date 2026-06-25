@@ -292,13 +292,16 @@ export const ProfileManager = {
 
         const payload = {
             action: 'add_imported_db',
-            id: State.currentUser.id,
+            userId: State.currentUser.id, // Fixed parameter name
             projectName: document.getElementById('importDbName').value,
             apiUrl: document.getElementById('importDbUrl').value
         };
 
         try {
-            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, { method: 'POST', body: JSON.stringify(payload) });
+            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, { 
+                method: 'POST', 
+                body: JSON.stringify(payload) 
+            });
             const data = await res.json();
             
             if (data.status === 'success') {
