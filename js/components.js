@@ -144,6 +144,32 @@ export function injectComponents() {
                 </form>
             </div>
         </div>
+
+        <div id="importDbModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-[300] hidden justify-center items-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-800"><i class="fas fa-database text-blue-600 mr-2"></i>Import Databases</h3>
+                    <button onclick="window.closeProfileModals()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="p-4 overflow-y-auto">
+                    <form id="addImportDbForm" class="flex flex-col gap-3 mb-6">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Project Name</label>
+                            <input type="text" id="importDbName" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" placeholder="e.g. Q1 Finance DB">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">API URL</label>
+                            <input type="url" id="importDbUrl" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" placeholder="https://api.example.com/data">
+                        </div>
+                        <button type="submit" id="addImportDbBtn" class="bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700 transition shadow">Import Database</button>
+                    </form>
+                    
+                    <h4 class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Saved Databases</h4>
+                    <div id="importedDbList" class="flex flex-col gap-2">
+                        </div>
+                </div>
+            </div>
+        </div>
     `;
 
     mainView.innerHTML = `
@@ -257,6 +283,7 @@ export function injectComponents() {
                 <ul class="space-y-1 px-2 text-sm font-semibold text-gray-700">
                     <li><button onclick="window.openUpdateDetailsModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left"><i class="fas fa-id-card w-5 text-center text-gray-500"></i> Update Details</button></li>
                     <li><button onclick="window.openProfilePicModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left"><i class="fas fa-camera w-5 text-center text-gray-500"></i> Upload Profile Picture</button></li>
+                    <li><button onclick="window.openImportDbModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left"><i class="fas fa-database w-5 text-center text-gray-500"></i> Import Databases</button></li>
                     <li><button onclick="window.openChangePasswordModal(); window.closeAllMenus();" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left"><i class="fas fa-key w-5 text-center text-gray-500"></i> Change Password</button></li>
                 </ul>
             </nav>
