@@ -1,4 +1,3 @@
-// gcalacdayuniv/teaching/teaching-e54f485eaa3ab29cd9083c6328eb56077623b774/js/profile.js
 import { CONFIG, State } from './globals.js';
 import { AuthManager } from './auth.js';
 
@@ -9,6 +8,8 @@ export const ProfileManager = {
         window.openUpdateDetailsModal = ProfileManager.openDetailsModal;
         window.openProfilePicModal = ProfileManager.openAvatarModal;
         window.openChangePasswordModal = ProfileManager.openPasswordModal;
+        
+        // ADDED: Global bindings for Import DB
         window.openImportDbModal = ProfileManager.openImportDbModal;
         window.deleteImportedDb = ProfileManager.deleteImportedDb;
         window.closeProfileModals = ProfileManager.closeAllModals;
@@ -16,6 +17,8 @@ export const ProfileManager = {
         document.getElementById('detailsForm')?.addEventListener('submit', ProfileManager.saveDetails);
         document.getElementById('passwordForm')?.addEventListener('submit', ProfileManager.savePassword);
         document.getElementById('avatarForm')?.addEventListener('submit', ProfileManager.saveAvatar);
+        
+        // ADDED: Listener for the Import DB Form
         document.getElementById('addImportDbForm')?.addEventListener('submit', ProfileManager.addImportedDb);
         
         document.getElementById('modalAvatarInput')?.addEventListener('change', ProfileManager.handleImageSelection);
@@ -73,6 +76,7 @@ export const ProfileManager = {
         }
     },
 
+    // ADDED: Function to open DB Modal and load the list
     openImportDbModal: () => {
         ProfileManager.loadImportedDbs();
         const modal = document.getElementById('importDbModal');
@@ -83,6 +87,7 @@ export const ProfileManager = {
     },
 
     closeAllModals: () => {
+        // ADDED: 'importDbModal' to the array of modals to close
         ['detailsModal', 'avatarModal', 'passwordModal', 'importDbModal'].forEach(id => {
             const el = document.getElementById(id);
             if(el) {
@@ -238,6 +243,7 @@ export const ProfileManager = {
         }
     },
 
+    // ADDED: Function to fetch existing DBs from worker
     loadImportedDbs: async () => {
         const listContainer = document.getElementById('importedDbList');
         if (!listContainer) return;
@@ -276,6 +282,7 @@ export const ProfileManager = {
         }
     },
 
+    // ADDED: Function to submit the new DB
     addImportedDb: async (e) => {
         e.preventDefault();
         const btn = document.getElementById('addImportDbBtn');
@@ -308,6 +315,7 @@ export const ProfileManager = {
         }
     },
 
+    // ADDED: Function to delete a database
     deleteImportedDb: async (dbId) => {
         if (!confirm("Are you sure you want to remove this imported database?")) return;
         
