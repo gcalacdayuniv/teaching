@@ -183,4 +183,111 @@ export default {
 
           const resourceId = crypto.randomUUID();
           await env.DB.prepare("INSERT INTO Resource_Links (Resource_ID, User_ID, Category, Title, URL, Is_Deleted) VALUES (?, ?, ?, ?, ?, 0)")
-            .bind(resourceId, userId, body.category, body.title
+            .bind(resourceId, userId, body.category, body.title, finalUrl).run();
+          return new Response(JSON.stringify({ status: "success", resourceId }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'edit_resource') {
+          await env.DB.prepare("UPDATE Resource_Links SET Category = ?, Title = ?, URL = ? WHERE Resource_ID = ? AND User_ID = ?")
+            .bind(body.category, body.title, body.url, body.resourceId, userId).run();
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'delete_resource') {
+          await env.DB.prepare("UPDATE Resource_Links SET Is_Deleted = 1 WHERE Resource_ID = ? AND User_ID = ?")
+            .bind(body.resourceId, userId).run();
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'create_project') {
+          const projectId = crypto.randomUUID();
+          await env.DB.prepare("INSERT INTO Projects (Project_ID, User_ID, Name) VALUES (?, ?, ?)")
+            .bind(projectId, userId, body.name).run();
+          return new Response(JSON.stringify({ status: "success", projectId }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'get_projects') {
+          let projects = [];
+          try {
+            const { results } = await env.DB.prepare("SELECT * FROM Projects WHERE User_ID = ? ORDER BY Created_At DESC").bind(userId).all();
+            projects = results;
+          } catch(e) { }
+          return new Response(JSON.stringify({ status: "success", projects }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'get_project_ledger') {
+          let transactions = [];
+          try {
+            const { results } = await env.DB.prepare("SELECT * FROM Finance_Transactions WHERE Project_ID = ? AND User_ID = ? ORDER BY Date DESC").bind(body.projectId, userId).all();
+            transactions = results;
+          } catch(e) { }
+          return new Response(JSON.stringify({ status: "success", transactions }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'get_finance_ledger') {
+          let transactions = [];
+          try {
+            const res = await env.DB.prepare("SELECT * FROM Finance_Transactions WHERE User_ID = ? ORDER BY Date DESC").bind(userId).all();
+            transactions = res.results;
+          } catch(e) { }
+
+          const { results: teachingHours } = await env.DB.prepare("SELECT * FROM Teaching_Hours WHERE Payment_Status = 'Paid' AND User_ID = ? ORDER BY Date_Paid DESC").bind(userId).all();
+          
+          return new Response(JSON.stringify({ status: "success", transactions, teachingHours }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'add_finance_records') {
+          const insertStmt = env.DB.prepare(`
+            INSERT INTO Finance_Transactions 
+            (Transaction_ID, User_ID, Date, Type, Main_Group, Sub_Group_1, Sub_Group_2, Sub_Group_3, Sub_Group_4, Sub_Group_5, Description, Amount, Project_ID, Attachment) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `);
+
+          const updateStmt = env.DB.prepare(`
+            UPDATE Finance_Transactions 
+            SET Date = ?, Type = ?, Main_Group = ?, Sub_Group_1 = ?, Sub_Group_2 = ?, Sub_Group_3 = ?, Sub_Group_4 = ?, Sub_Group_5 = ?, Description = ?, Amount = ?, Project_ID = ?, Attachment = COALESCE(?, Attachment)
+            WHERE Transaction_ID = ? AND User_ID = ?
+          `);
+
+          const batchList = body.records.map(record => {
+            if (record.id) {
+                return updateStmt.bind(
+                  record.date, record.type, record.group, 
+                  record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
+                  record.description, record.amount, record.projectId || null, record.attachment || null,
+                  record.id, userId
+                );
+            } else {
+                const transId = crypto.randomUUID();
+                return insertStmt.bind(
+                  transId, userId, record.date, record.type, record.group, 
+                  record.subGroup1 || null, record.subGroup2 || null, record.subGroup3 || null, record.subGroup4 || null, record.subGroup5 || null, 
+                  record.description, record.amount, record.projectId || null, record.attachment || null
+                );
+            }
+          });
+
+          await env.DB.batch(batchList);
+          return new Response(JSON.stringify({ status: "success", count: batchList.length }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'delete_finance_record') {
+          await env.DB.prepare("DELETE FROM Finance_Transactions WHERE Transaction_ID = ? AND User_ID = ?")
+            .bind(body.recordId, userId).run();
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        return new Response(JSON.stringify({ status: "error", message: "Unknown action" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+
+      } catch (error) {
+        return new Response(JSON.stringify({ status: "error", message: error.message }), { 
+          status: 500, headers: { "content-type": "application/json", ...corsHeaders } 
+        });
+      } 
+    }
+
+    return new Response(JSON.stringify({ error: "Endpoint not found" }), { 
+      status: 404, headers: { "content-type": "application/json", ...corsHeaders } 
+    });
+  },
+};
