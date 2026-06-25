@@ -25,10 +25,7 @@ export const FinanceManager = {
 
     async refreshLedger() {
         try {
-            const user = JSON.parse(localStorage.getItem('professionalPortalUser'));
-            if (!user) return;
-
-            // 1. ALWAYS FETCH LOCAL DATA FIRST
+            // EXACT RESTORATION OF YOUR WORKING LOCAL FETCH
             const [ledgerRes, projRes] = await Promise.all([
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_finance_ledger' }),
                 API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'get_projects' })
@@ -36,9 +33,9 @@ export const FinanceManager = {
 
             if (ledgerRes.status === 'success' && projRes.status === 'success') {
                 this.rawData = {
-                    transactions: ledgerRes.transactions || [],
-                    teachingHours: ledgerRes.teachingHours || [],
-                    projects: projRes.projects || []
+                    transactions: ledgerRes.transactions,
+                    teachingHours: ledgerRes.teachingHours,
+                    projects: projRes.projects
                 };
 
                 const fromInput = document.getElementById('finFilterFrom');
@@ -55,34 +52,31 @@ export const FinanceManager = {
                     fromInput.value = `${year}-${month}-01`;
                 }
 
-                // 2. RENDER LOCAL DATA IMMEDIATELY
+                // Render local data instantly
                 this.applyFilter();
 
-                // 3. FETCH EXTERNAL DATA IN THE BACKGROUND
-                // Notice there is no 'await' here. It runs without blocking the UI.
-                this.loadExternalDatabases(user.User_ID);
+                // Fire the external fetch in the background without halting the UI
+                // We rely on your API wrapper to handle the user context
+                this.loadExternalDatabases();
             }
         } catch (err) {
             console.error("Failed to load finance data:", err);
         }
     },
 
-    async loadExternalDatabases(userId) {
+    async loadExternalDatabases() {
         try {
-            // Ask the local database for the user's saved API links
-            const response = await fetch(window.APP_CONFIG?.API_URL || CONFIG.API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_imported_databases', User_ID: userId })
+            // Safely use your native wrapper to get the database list
+            const importedRes = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { 
+                action: 'get_imported_databases' 
             });
-            const importedRes = await response.json();
 
-            if (importedRes.success && importedRes.databases && importedRes.databases.length > 0) {
+            // Account for varying success keys ('status' or 'success') returned by your wrapper
+            if ((importedRes.status === 'success' || importedRes.success) && importedRes.databases && importedRes.databases.length > 0) {
                 let externalTransactions = [];
 
                 for (const db of importedRes.databases) {
                     try {
-                        // Call the external API expecting the Standard Contract
                         const extRes = await fetch(db.API_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -91,30 +85,29 @@ export const FinanceManager = {
                         
                         const extData = await extRes.json();
 
-                        // If standard data is found, map it to our UI format
+                        // Strict adherence to the Standard Contract
                         if (extData.success && extData.data && extData.data.transactions) {
                             const mapped = extData.data.transactions.map(t => ({
                                 Transaction_ID: t.id,
                                 Date: t.date,
                                 Type: t.type,
-                                Main_Group: db.Project_Name,  // e.g. "Etch Data"
-                                Sub_Group_1: t.project_name,  // The specific project passed by the API
+                                Main_Group: db.Project_Name,  
+                                Sub_Group_1: t.project_name, 
                                 Description: t.description,
                                 Amount: Number(t.amount),
-                                isExternal: true              // Prevents editing in the local UI
+                                isExternal: true              
                             }));
                             externalTransactions.push(...mapped);
                         }
                     } catch (e) {
-                        // If one external API is offline or fails, it just logs it and moves to the next one
-                        console.warn(`Failed to fetch from ${db.Project_Name}:`, e);
+                        console.warn(`Failed to fetch from external API (${db.Project_Name}):`, e);
                     }
                 }
 
-                // If any external data was successfully fetched, merge it and update the screen
+                // Safely merge arrays to prevent iterable crashes if local transactions were empty
                 if (externalTransactions.length > 0) {
-                    this.rawData.transactions = [...this.rawData.transactions, ...externalTransactions];
-                    this.applyFilter();
+                    this.rawData.transactions = [...(this.rawData.transactions || []), ...externalTransactions];
+                    this.applyFilter(); // Refresh DOM with new combined data
                 }
             }
         } catch (error) {
@@ -156,10 +149,14 @@ export const FinanceManager = {
             return true;
         };
 
-        const filteredTx = this.rawData.transactions.filter(t => dateFilter(t.Date));
-        const filteredTh = this.rawData.teachingHours.filter(th => dateFilter(th.Date_Paid || th.Date));
+        // Safety fallback array initialization for .filter()
+        const currentTx = this.rawData.transactions || [];
+        const currentTh = this.rawData.teachingHours || [];
 
-        this.renderCards(filteredTx, filteredTh, this.rawData.projects);
+        const filteredTx = currentTx.filter(t => dateFilter(t.Date));
+        const filteredTh = currentTh.filter(th => dateFilter(th.Date_Paid || th.Date));
+
+        this.renderCards(filteredTx, filteredTh, this.rawData.projects || []);
     }
 };
 
