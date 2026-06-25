@@ -1,3 +1,4 @@
+// gcalacdayuniv/teaching/teaching-e54f485eaa3ab29cd9083c6328eb56077623b774/js/profile.js
 import { CONFIG, State } from './globals.js';
 import { AuthManager } from './auth.js';
 
@@ -8,11 +9,14 @@ export const ProfileManager = {
         window.openUpdateDetailsModal = ProfileManager.openDetailsModal;
         window.openProfilePicModal = ProfileManager.openAvatarModal;
         window.openChangePasswordModal = ProfileManager.openPasswordModal;
+        window.openImportDbModal = ProfileManager.openImportDbModal;
+        window.deleteImportedDb = ProfileManager.deleteImportedDb;
         window.closeProfileModals = ProfileManager.closeAllModals;
 
         document.getElementById('detailsForm')?.addEventListener('submit', ProfileManager.saveDetails);
         document.getElementById('passwordForm')?.addEventListener('submit', ProfileManager.savePassword);
         document.getElementById('avatarForm')?.addEventListener('submit', ProfileManager.saveAvatar);
+        document.getElementById('addImportDbForm')?.addEventListener('submit', ProfileManager.addImportedDb);
         
         document.getElementById('modalAvatarInput')?.addEventListener('change', ProfileManager.handleImageSelection);
 
@@ -40,8 +44,10 @@ export const ProfileManager = {
         document.getElementById('detailsContact').value = State.currentUser?.contact || '';
         
         const modal = document.getElementById('detailsModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        if(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
     },
 
     openAvatarModal: () => {
@@ -51,20 +57,33 @@ export const ProfileManager = {
         ProfileManager.pendingAvatar = '';
         
         const modal = document.getElementById('avatarModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        if(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
     },
 
     openPasswordModal: () => {
-        document.getElementById('passwordForm').reset();
+        document.getElementById('passwordForm')?.reset();
         
         const modal = document.getElementById('passwordModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        if(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    },
+
+    openImportDbModal: () => {
+        ProfileManager.loadImportedDbs();
+        const modal = document.getElementById('importDbModal');
+        if(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
     },
 
     closeAllModals: () => {
-        ['detailsModal', 'avatarModal', 'passwordModal'].forEach(id => {
+        ['detailsModal', 'avatarModal', 'passwordModal', 'importDbModal'].forEach(id => {
             const el = document.getElementById(id);
             if(el) {
                 el.classList.add('hidden');
@@ -216,6 +235,96 @@ export const ProfileManager = {
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
+        }
+    },
+
+    loadImportedDbs: async () => {
+        const listContainer = document.getElementById('importedDbList');
+        if (!listContainer) return;
+        
+        listContainer.innerHTML = '<div class="text-center text-sm text-gray-500 py-4"><i class="fas fa-spinner fa-spin"></i> Loading databases...</div>';
+        
+        try {
+            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'get_imported_dbs', userId: State.currentUser.id }) 
+            });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                if (data.databases.length === 0) {
+                    listContainer.innerHTML = '<div class="text-center text-xs text-gray-400 py-3">No imported databases yet.</div>';
+                    return;
+                }
+                
+                listContainer.innerHTML = data.databases.map(db => `
+                    <div class="flex justify-between items-center p-3 border border-gray-100 rounded-lg bg-gray-50">
+                        <div class="flex-1 min-w-0 pr-3">
+                            <p class="text-sm font-bold text-gray-800 truncate">${db.Project_Name}</p>
+                            <p class="text-xs text-gray-500 truncate">${db.API_URL}</p>
+                        </div>
+                        <button onclick="window.deleteImportedDb('${db.ID}')" class="text-red-500 hover:bg-red-50 rounded p-2 shrink-0 transition">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                listContainer.innerHTML = '<div class="text-center text-xs text-red-400 py-3">Failed to load databases.</div>';
+            }
+        } catch (error) {
+            listContainer.innerHTML = '<div class="text-center text-xs text-red-400 py-3">Connection error.</div>';
+        }
+    },
+
+    addImportedDb: async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('addImportDbBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+        btn.disabled = true;
+
+        const payload = {
+            action: 'add_imported_db',
+            id: State.currentUser.id,
+            projectName: document.getElementById('importDbName').value,
+            apiUrl: document.getElementById('importDbUrl').value
+        };
+
+        try {
+            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, { method: 'POST', body: JSON.stringify(payload) });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                document.getElementById('addImportDbForm').reset();
+                ProfileManager.loadImportedDbs();
+            } else { 
+                alert("Error adding database: " + (data.message || 'Unknown error')); 
+            }
+        } catch (error) { 
+            alert("Connection error while adding database.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    },
+
+    deleteImportedDb: async (dbId) => {
+        if (!confirm("Are you sure you want to remove this imported database?")) return;
+        
+        try {
+            const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINTS.POST_ACTION}`, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'remove_imported_db', userId: State.currentUser.id, dbId: dbId }) 
+            });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                ProfileManager.loadImportedDbs();
+            } else { 
+                alert("Error removing database: " + (data.message || 'Unknown error')); 
+            }
+        } catch (error) { 
+            alert("Connection error while removing database.");
         }
     }
 };
