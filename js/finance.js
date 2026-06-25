@@ -90,13 +90,18 @@ export const FinanceManager = {
 
                 for (const db of importedRes.databases) {
                     try {
-                        console.log(`STEP 4 [${db.Project_Name}]: Pinging URL -> ${db.API_URL}`);
+                        // Fallback logic for blank or null project names
+                        const projectName = (db.Project_Name && db.Project_Name.trim() !== '') 
+                            ? db.Project_Name.trim() 
+                            : `Imported DB (${db.ID})`;
+
+                        console.log(`STEP 4 [${projectName}]: Pinging URL -> ${db.API_URL}`);
                         
                         // Inject a mock project so the UI grouping logic doesn't ignore these transactions
                         if (!this.rawData.projects.find(p => p.Project_ID === db.ID)) {
                             this.rawData.projects.push({
                                 Project_ID: db.ID,
-                                Name: db.Project_Name,
+                                Name: projectName,
                                 Created_At: new Date().toISOString()
                             });
                         }
@@ -108,14 +113,14 @@ export const FinanceManager = {
                         });
                         
                         const extData = await extRes.json();
-                        console.log(`STEP 5 [${db.Project_Name}]: Data received ->`, extData);
+                        console.log(`STEP 5 [${projectName}]: Data received ->`, extData);
 
                         if (extData.success && extData.data && extData.data.transactions) {
                             const mapped = extData.data.transactions.map(t => ({
                                 Transaction_ID: t.id,
                                 Date: t.date,
                                 Type: t.type === 'Income' ? 'Income' : 'Expense',
-                                Main_Group: db.Project_Name,  
+                                Main_Group: projectName,  
                                 Sub_Group_1: t.project_name || 'Imported Data', 
                                 Sub_Group_2: '', 
                                 Sub_Group_3: '',
@@ -127,12 +132,12 @@ export const FinanceManager = {
                                 isExternal: true              
                             }));
                             externalTransactions.push(...mapped);
-                            console.log(`STEP 6 [${db.Project_Name}]: Successfully mapped ${mapped.length} records.`);
+                            console.log(`STEP 6 [${projectName}]: Successfully mapped ${mapped.length} records.`);
                         } else {
-                            console.warn(`STEP 6 [${db.Project_Name}]: API returned success false, or transactions array was missing.`);
+                            console.warn(`STEP 6 [${projectName}]: API returned success false, or transactions array was missing.`);
                         }
                     } catch (e) {
-                        console.error(`ERROR [${db.Project_Name}]: Failed to fetch or parse.`, e);
+                        console.error(`ERROR Pinging DB [${db.ID}]: Failed to fetch or parse.`, e);
                     }
                 }
 
