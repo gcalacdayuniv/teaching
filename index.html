@@ -49,6 +49,11 @@
                             <i class="fas fa-user-cog w-5 text-center text-gray-500"></i> Update Profile
                         </a>
                     </li>
+                    <li>
+                        <button onclick="window.openImportDbModal(); window.closeAllMenus()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition text-left">
+                            <i class="fas fa-database w-5 text-center text-gray-500"></i> Import Databases
+                        </button>
+                    </li>
                 </ul>
             </nav>
             
@@ -101,6 +106,32 @@
                 <button onclick="window.toggleAccountMenu()" id="menu-profile" class="flex-1 min-w-0 flex justify-center items-center gap-1 sm:gap-1.5 px-1 sm:px-2 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-300 text-gray-500 hover:bg-blue-50 hover:text-blue-700 h-9 focus:outline-none">
                     <i class="fas fa-user-circle shrink-0"></i> <span class="truncate">Profile</span>
                 </button>
+            </div>
+        </div>
+
+        <div id="importDbModal" class="hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-[110] justify-center items-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-800">Import Databases</h3>
+                    <button onclick="window.closeProfileModals()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="p-4 overflow-y-auto">
+                    <form id="addImportDbForm" class="flex flex-col gap-3 mb-6">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Project Name</label>
+                            <input type="text" id="importDbName" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" placeholder="e.g. Q1 Finance DB">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">API URL</label>
+                            <input type="url" id="importDbUrl" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" placeholder="https://api.example.com/data">
+                        </div>
+                        <button type="submit" id="addImportDbBtn" class="bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700 transition">Import Database</button>
+                    </form>
+                    
+                    <h4 class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Saved Databases</h4>
+                    <div id="importedDbList" class="flex flex-col gap-2">
+                        </div>
+                </div>
             </div>
         </div>
     </div>
