@@ -5,7 +5,6 @@ export function initFinanceForms() {
     if (logForm) {
         logForm.addEventListener('submit', handleLogTeachingLoad);
     }
-
     if (batchForm) {
         batchForm.addEventListener('submit', handleBatchTeachingLoad);
     }
