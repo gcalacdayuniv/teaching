@@ -21,9 +21,10 @@ export const LoggerManager = {
             <button type="button" class="remove-block-btn absolute top-2 right-2 text-red-400 hover:text-red-600 transition p-2">
                 <i class="fas fa-times"></i>
             </button>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <div><label class="block text-xs font-semibold text-gray-700">Subject Code</label><input type="text" name="subject" list="subList" required class="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-1 focus:ring-blue-500"></div>
-                <div><label class="block text-xs font-semibold text-gray-700">Hours per Session</label><input type="number" name="hours" step="0.5" required class="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-1 focus:ring-blue-500"></div>
+                <div><label class="block text-xs font-semibold text-gray-700">Hours per Teaching Load</label><input type="number" name="hours" step="0.5" required class="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-1 focus:ring-blue-500"></div>
+                <div><label class="block text-xs font-semibold text-gray-700">Rate</label><input type="number" name="rate" step="0.01" required class="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g. 400"></div>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div><label class="block text-xs font-semibold text-gray-700">Start Date</label><input type="date" name="startDate" required class="w-full border p-2 rounded-lg mt-1 outline-none text-xs sm:text-sm"></div>
@@ -77,7 +78,7 @@ export const LoggerManager = {
         e.preventDefault();
         const btn = document.getElementById('logSubmitBtn');
         const msg = document.getElementById('logStatusMsg');
-        btn.disabled = true; msg.textContent = "Processing batch... Please wait."; msg.className = "text-center text-sm text-blue-600 block mt-3 font-bold";
+        btn.disabled = true; msg.textContent = "Processing batch teaching load... Please wait."; msg.className = "text-center text-sm text-blue-600 block mt-3 font-bold";
         
         const commonUniversity = document.getElementById('commonUniversity').value;
         const commonCollege = document.getElementById('commonCollege').value;
@@ -88,6 +89,7 @@ export const LoggerManager = {
         for (let block of blocks) {
             const subject = block.querySelector('input[name="subject"]').value;
             const hours = block.querySelector('input[name="hours"]').value;
+            const rate = block.querySelector('input[name="rate"]').value;
             const startDateStr = block.querySelector('input[name="startDate"]').value;
             const endDateStr = block.querySelector('input[name="endDate"]').value;
             const startTime = block.querySelector('input[name="startTime"]').value;
@@ -113,6 +115,7 @@ export const LoggerManager = {
                     College: commonCollege,
                     Subject_Code: subject,
                     Total_Hours: hours,
+                    Rate: rate,
                     Start_Time: startTime,
                     End_Time: endTime,
                     Date: `${yyyy}-${mm}-${dd}`
@@ -131,14 +134,14 @@ export const LoggerManager = {
             const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, payload);
             
             if (data.status === 'success') {
-                msg.textContent = `Successfully generated and saved ${data.count} sessions!`; 
+                msg.textContent = `Successfully generated and saved ${data.count} teaching loads!`; 
                 msg.className = "text-center text-sm text-green-600 block font-bold mt-3";
                 
                 document.getElementById('logForm').reset();
                 document.getElementById('schedule-container').innerHTML = '';
                 LoggerManager.addScheduleBlock();
             } else {
-                throw new Error("Server rejected batch.");
+                throw new Error("Server rejected batch teaching load.");
             }
         } catch(e) { 
             msg.textContent = "Error saving records. Check connection."; 
