@@ -181,7 +181,7 @@ export function injectComponents() {
 
         <div id="logPanel" class="app-view hidden max-w-3xl mx-auto bg-white rounded-xl shadow-sm border p-4 sm:p-6 pb-24">
             <div class="flex justify-between items-center mb-6 border-b pb-3">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fas fa-calendar-plus text-blue-600 mr-2"></i>Batch Session Generator</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800"><i class="fas fa-calendar-plus text-blue-600 mr-2"></i>Log Teaching Load</h2>
             </div>
             
             <form id="logForm" class="space-y-6">
