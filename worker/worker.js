@@ -123,7 +123,6 @@ export default {
         }
 
         if (body.action === 'add_hours_batch') {
-          const hourlyRate = 400;
           const stmt = env.DB.prepare(`
             INSERT INTO Teaching_Hours 
             (Entry_ID, User_ID, Date, Start_Time, End_Time, Total_Hours, University, College, Subject_Code, Payment_Status, Date_Paid, Total_Earnings) 
@@ -131,7 +130,7 @@ export default {
           `);
 
           const batchList = body.records.map(record => {
-            const totalEarnings = parseFloat(record.Total_Hours || 0) * hourlyRate;
+            const totalEarnings = parseFloat(record.Total_Hours || 0) * parseFloat(record.Rate || 0);
             const entryId = crypto.randomUUID();
             return stmt.bind(
               entryId, userId, record.Date, record.Start_Time || '', record.End_Time || '', record.Total_Hours, 
