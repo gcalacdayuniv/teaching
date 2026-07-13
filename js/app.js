@@ -5,27 +5,23 @@ import { AuthManager } from './auth.js';
 import { LoggerManager } from './hours-logger.js';
 import { RecordsManager } from './records-viewer.js';
 import { ProfileManager } from './profile.js';
-import { FinanceManager } from './finance.js';
-import { PWA } from './pwa.js';
-import { PdfCompiler } from './pdf.js';
 
 initApp();
 
 function initApp() {
     try {
+        // 1. Inject HTML into the DOM first
         injectComponents();
-        FinanceManager.injectComponent();
-        PdfCompiler.init();
-        
+
+        // 2. Setup Global UI Logic (FAB & Menus)
         setupUI();
 
-        PWA.init();
+        // 3. Initialize all modular domains
         AuthManager.init();
         AppRouter.init();
         LoggerManager.init();
         RecordsManager.init();
         ProfileManager.init();
-        FinanceManager.init();
         
         console.log("Teaching Portal Modular Architecture Loaded Successfully");
     } catch (error) {
@@ -34,19 +30,10 @@ function initApp() {
 }
 
 function setupUI() {
-    const profileBtn = document.getElementById('menu-profile');
-    if (profileBtn) {
-        profileBtn.id = 'menu-pdf';
-        profileBtn.onclick = null;
-        profileBtn.className = 'menu-link flex-1 min-w-0 flex justify-center items-center gap-1 sm:gap-1.5 px-1 sm:px-2 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-300 text-gray-500 hover:bg-blue-50 hover:text-blue-700 h-9 focus:outline-none';
-        profileBtn.innerHTML = `
-            <i class="fas fa-file-pdf shrink-0"></i>
-            <span class="truncate">PDF</span>
-        `;
-        profileBtn.addEventListener('click', () => { window.location.hash = '#/pdf'; });
-        profileBtn.setAttribute('href', '#/pdf');
-    }
-
+    // ----------------------------------------------------
+    // Global UI Functions (Attached to window for HTML events)
+    // ----------------------------------------------------
+    
     window.toggleFAB = function() {
         const fabMenu = document.getElementById('fabMenu');
         const fabIcon = document.getElementById('fabIcon');
@@ -54,7 +41,7 @@ function setupUI() {
         if (fabMenu.classList.contains('hidden')) {
             fabMenu.classList.remove('hidden');
             fabMenu.classList.add('flex');
-            fabIcon.style.transform = 'rotate(45deg)'; 
+            fabIcon.style.transform = 'rotate(45deg)'; // Turns '+' into 'X'
         } else {
             fabMenu.classList.add('hidden');
             fabMenu.classList.remove('flex');
@@ -69,6 +56,7 @@ function setupUI() {
         if (menu.classList.contains('translate-x-full')) {
             menu.classList.remove('translate-x-full');
             backdrop.classList.remove('hidden');
+            // Sync avatar in case AuthManager missed it
             if(window.ProfileManager && window.ProfileManager.syncUI) {
                 window.ProfileManager.syncUI();
             }
@@ -107,6 +95,7 @@ function setupUI() {
         }
     };
 
+    // Style active tab in bottom navigation dynamically
     window.addEventListener('hashchange', () => {
         const currentHash = window.location.hash;
         document.querySelectorAll('.menu-link').forEach(link => {
@@ -119,8 +108,10 @@ function setupUI() {
             }
         });
         
+        // Ensure FAB and menus close when navigating
         window.closeAllMenus();
         
+        // Only close profile modals strictly on hashchange (navigation), not when closing side menus
         if (window.closeProfileModals) {
             window.closeProfileModals();
         }
