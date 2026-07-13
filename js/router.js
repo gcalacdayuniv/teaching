@@ -25,6 +25,7 @@ export const AppRouter = {
             '#/records': 'viewPanel',
             '#/finance': 'financePanel',
             '#/resources': 'resourcePanel',
+            '#/pdf': 'pdfPanel',
             '#/profile': 'profilePanel'
         };
 
@@ -33,7 +34,7 @@ export const AppRouter = {
         
         if (targetElement) {
             targetElement.classList.remove('hidden');
-            if (targetId === 'viewPanel' || targetId === 'welcomePanel' || targetId === 'financePanel') {
+            if (targetId === 'viewPanel' || targetId === 'welcomePanel' || targetId === 'financePanel' || targetId === 'pdfPanel') {
                 targetElement.classList.add('flex');
             }
         }
