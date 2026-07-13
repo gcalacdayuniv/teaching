@@ -38,9 +38,9 @@ function setupUI() {
     if (profileBtn) {
         profileBtn.id = 'menu-pdf';
         profileBtn.onclick = null;
-        profileBtn.className = 'menu-link flex-1 min-w-0 flex justify-center items-center gap-1 sm:gap-1.5 px-1 sm:px-2 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-300 text-gray-500 hover:bg-red-50 hover:text-red-700 h-9 focus:outline-none';
+        profileBtn.className = 'menu-link flex-1 min-w-0 flex justify-center items-center gap-1 sm:gap-1.5 px-1 sm:px-2 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-300 text-gray-500 hover:bg-blue-50 hover:text-blue-700 h-9 focus:outline-none';
         profileBtn.innerHTML = `
-            <i class="fas fa-file-pdf shrink-0 text-red-600"></i>
+            <i class="fas fa-file-pdf shrink-0"></i>
             <span class="truncate">PDF</span>
         `;
         profileBtn.addEventListener('click', () => { window.location.hash = '#/pdf'; });
