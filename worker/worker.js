@@ -1,3 +1,6 @@
+import { getImagesFromFolder, downloadImage } from './services/driveService.js';
+import { createPdf } from './services/pdfService.js';
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -97,6 +100,39 @@ export default {
         // --- SCOPED ENDPOINTS (Require userId) ---
         if (!['login', 'update_details', 'update_avatar', 'update_password'].includes(body.action) && !userId) {
             return new Response(JSON.stringify({ status: "error", message: "Unauthorized: Missing User ID" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        // --- PDF COMPILER ROUTE ---
+        if (body.action === 'compile_pdf') {
+          const { folderId, apiKey, config } = body;
+          if (!folderId || !apiKey) {
+            return new Response(JSON.stringify({ status: "error", message: "Missing folderId or apiKey" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+          }
+
+          const files = await getImagesFromFolder(folderId, apiKey);
+          if (!files.length) {
+            return new Response(JSON.stringify({ status: "error", message: "No compatible images found in folder" }), { headers: { "content-type": "application/json", ...corsHeaders } });
+          }
+
+          const imageBuffers = [];
+          for (const file of files) {
+            try {
+              const buffer = await downloadImage(file.id, apiKey);
+              imageBuffers.push({ buffer, mimeType: file.mimeType });
+            } catch (err) {
+              console.error(`Failed downloading file ${file.id}:`, err);
+            }
+          }
+
+          const pdfBytes = await createPdf(imageBuffers, config || {});
+          
+          return new Response(pdfBytes, {
+            headers: {
+              "Content-Type": "application/pdf",
+              "Content-Disposition": 'attachment; filename="compiled-document.pdf"',
+              ...corsHeaders
+            }
+          });
         }
 
         // --- IMPORTED DATABASES ROUTES ---
