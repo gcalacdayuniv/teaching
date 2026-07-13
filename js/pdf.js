@@ -37,6 +37,7 @@ export const PdfCompiler = {
                                 <select id="paperSize" onchange="window.toggleCustomSize()" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm">
                                     <option value="letter">Letter (8.5 x 11 in)</option>
                                     <option value="legal">Legal (8.5 x 14 in)</option>
+                                    <option value="Folio">Folio (8.5 x 13 in)</option>
                                     <option value="custom">Custom</option>
                                 </select>
                             </div>
