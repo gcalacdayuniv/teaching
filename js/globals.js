@@ -39,6 +39,12 @@ export const Utils = {
 export const API = {
     get: async (endpoint, params = {}) => {
         const url = new URL(`${CONFIG.API_BASE}${endpoint}`);
+        
+        // Auto-inject userId for scoped requests so worker.js doesn't throw a 401
+        if (State.currentUser && State.currentUser.id) {
+            params.userId = State.currentUser.id;
+        }
+
         Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
         
         const response = await fetch(url);
@@ -47,6 +53,11 @@ export const API = {
     },
     
     post: async (endpoint, body) => {
+        // Auto-inject userId for scoped requests so worker.js doesn't throw a 401
+        if (State.currentUser && State.currentUser.id) {
+            body.userId = State.currentUser.id;
+        }
+
         const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
