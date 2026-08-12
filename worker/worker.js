@@ -1,6 +1,3 @@
-================================================
-File: worker/worker.js
-================================================
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -97,10 +94,12 @@ export default {
           }
         }
 
+        // --- SCOPED ENDPOINTS (Require userId) ---
         if (!['login', 'update_details', 'update_avatar', 'update_password'].includes(body.action) && !userId) {
             return new Response(JSON.stringify({ status: "error", message: "Unauthorized: Missing User ID" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
+        // --- IMPORTED DATABASES ROUTES ---
         if (body.action === 'add_imported_db') {
           const dbId = crypto.randomUUID();
           await env.DB.prepare("INSERT INTO Imported_Databases (ID, User_ID, Project_Name, API_URL) VALUES (?, ?, ?, ?)")
@@ -141,18 +140,6 @@ export default {
 
           await env.DB.batch(batchList);
           return new Response(JSON.stringify({ status: "success", count: batchList.length }), { headers: { "content-type": "application/json", ...corsHeaders } });
-        }
-
-        if (body.action === 'edit_hours') {
-          await env.DB.prepare("UPDATE Teaching_Hours SET Date = ?, Subject_Code = ?, Total_Hours = ?, Total_Earnings = ? WHERE Entry_ID = ? AND User_ID = ?")
-            .bind(body.date, body.subjectCode, body.totalHours, body.totalEarnings, body.entryId, userId).run();
-          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
-        }
-
-        if (body.action === 'delete_hours') {
-          await env.DB.prepare("DELETE FROM Teaching_Hours WHERE Entry_ID = ? AND User_ID = ?")
-            .bind(body.entryId, userId).run();
-          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
         if (body.action === 'update_payment') {
