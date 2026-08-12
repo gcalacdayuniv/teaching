@@ -1,6 +1,3 @@
-================================================
-File: js/components.js
-================================================
 // js/components.js
 
 export function injectComponents() {
@@ -36,24 +33,6 @@ export function injectComponents() {
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[80vh]">
                 <div class="flex justify-between items-center mb-4 border-b pb-2"><h2 id="summaryModalTitle" class="font-bold text-lg sm:text-xl">Details</h2><button id="closeSummaryBtn" class="text-gray-400 text-xl hover:text-gray-600 transition"><i class="fas fa-times"></i></button></div>
                 <div class="overflow-y-auto w-full flex-1"><table class="w-full min-w-full text-xs sm:text-sm border"><thead class="bg-gray-50 sticky top-0"><tr><th id="summaryCol1" class="p-3 text-left">Date</th><th id="summaryCol2" class="p-3 text-right">Value</th></tr></thead><tbody id="summaryTableBody" class="divide-y"></tbody></table></div>
-            </div>
-        </div>
-        
-        <div id="editRecordModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
-            <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
-                <h2 class="text-lg font-bold mb-4 text-gray-800"><i class="fas fa-edit text-blue-600 mr-2"></i>Edit Record</h2>
-                <form id="editRecordForm" class="space-y-3">
-                    <input type="hidden" id="editRecordId">
-                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Date</label><input type="date" id="editRecordDate" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
-                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Subject</label><input type="text" id="editRecordSubject" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
-                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Total Hours</label><input type="number" step="0.1" id="editRecordHours" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
-                    <div><label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Total Earnings (₱)</label><input type="number" step="0.01" id="editRecordEarnings" required class="w-full border p-2 rounded-lg outline-none text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500"></div>
-                    
-                    <div class="flex justify-end gap-2 mt-5">
-                        <button type="button" onclick="document.getElementById('editRecordModal').classList.add('hidden'); document.getElementById('editRecordModal').classList.remove('flex');" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition">Cancel</button>
-                        <button type="submit" id="editRecordBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Save Changes</button>
-                    </div>
-                </form>
             </div>
         </div>
 
@@ -267,10 +246,9 @@ export function injectComponents() {
                             <th class="px-2 py-2 text-center">Date</th>
                             <th class="px-2 py-2 text-center">Status</th>
                             <th class="px-2 py-2 text-center">Amount</th>
-                            <th class="px-2 py-2 text-center w-12">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody" class="divide-y divide-gray-100 text-[11px] sm:text-xs"><tr><td colspan="5" class="py-6 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
+                    <tbody id="dataTableBody" class="divide-y divide-gray-100 text-[11px] sm:text-xs"><tr><td colspan="4" class="py-6 text-center text-gray-400">Select dates and fetch data.</td></tr></tbody>
                 </table>
             </div>
         </div>
