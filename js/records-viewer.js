@@ -1,3 +1,6 @@
+================================================
+File: js/records-viewer.js
+================================================
 import { CONFIG, Utils, API } from './globals.js';
 
 export const RecordsManager = {
@@ -7,6 +10,22 @@ export const RecordsManager = {
         const startInput = document.getElementById('filterStart');
         const endInput = document.getElementById('filterEnd');
         const clearDatesBtn = document.getElementById('clearDatesBtn');
+
+        if (startInput && endInput && !startInput.value && !endInput.value) {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            
+            const formatDate = (d) => {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            };
+            
+            startInput.value = formatDate(firstDay);
+            endInput.value = formatDate(lastDay);
+        }
 
         if (startInput) startInput.addEventListener('change', RecordsManager.fetchData);
         if (endInput) endInput.addEventListener('change', RecordsManager.fetchData);
@@ -61,7 +80,6 @@ export const RecordsManager = {
             confirmPaymentBtn.addEventListener('click', RecordsManager.confirmMarkAsPaid);
         }
 
-        // Summary Modals Events
         const closeSummaryBtn = document.getElementById('closeSummaryBtn');
         if (closeSummaryBtn) {
             closeSummaryBtn.addEventListener('click', () => {
@@ -79,6 +97,11 @@ export const RecordsManager = {
         
         const cardUnpaid = document.getElementById('cardUnpaid');
         if (cardUnpaid) cardUnpaid.addEventListener('click', () => RecordsManager.openSummaryModal('Unpaid'));
+
+        const editRecordForm = document.getElementById('editRecordForm');
+        if (editRecordForm) {
+            editRecordForm.addEventListener('submit', RecordsManager.submitEditRecord);
+        }
     },
 
     openPaymentModal: () => {
@@ -136,7 +159,6 @@ export const RecordsManager = {
         const end = document.getElementById('filterEnd').value; 
         const currentTab = document.getElementById('filterType').value; 
 
-        // Filter the cached data exactly like the main view
         const filtered = RecordsManager.cachedData.filter(r => {
             if (currentTab === 'Paid' && r.Payment_Status !== 'Paid') return false;
             if (currentTab === 'Unpaid' && r.Payment_Status === 'Paid') return false;
@@ -205,13 +227,75 @@ export const RecordsManager = {
         modal.classList.add('flex');
     },
 
+    editRecord: (id) => {
+        const record = RecordsManager.cachedData.find(r => r.Entry_ID === id);
+        if (!record) return;
+        
+        document.getElementById('editRecordId').value = record.Entry_ID;
+        document.getElementById('editRecordDate').value = record.Date;
+        document.getElementById('editRecordSubject').value = record.Subject_Code;
+        document.getElementById('editRecordHours').value = record.Total_Hours;
+        document.getElementById('editRecordEarnings').value = record.Total_Earnings;
+        
+        const modal = document.getElementById('editRecordModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
+    submitEditRecord: async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('editRecordBtn');
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        const payload = {
+            action: 'edit_hours',
+            entryId: document.getElementById('editRecordId').value,
+            date: document.getElementById('editRecordDate').value,
+            subjectCode: document.getElementById('editRecordSubject').value,
+            totalHours: document.getElementById('editRecordHours').value,
+            totalEarnings: document.getElementById('editRecordEarnings').value
+        };
+
+        try {
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, payload);
+            if (data.status === 'success') {
+                document.getElementById('editRecordModal').classList.add('hidden');
+                document.getElementById('editRecordModal').classList.remove('flex');
+                RecordsManager.fetchData();
+            } else {
+                alert("Error updating record: " + (data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            alert("Network error while updating record.");
+        } finally {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+        }
+    },
+
+    deleteRecord: async (id) => {
+        if (!confirm("Are you sure you want to delete this record?")) return;
+        try {
+            const data = await API.post(CONFIG.ENDPOINTS.POST_ACTION, { action: 'delete_hours', entryId: id });
+            if (data.status === 'success') {
+                RecordsManager.fetchData();
+            } else {
+                alert("Error deleting record.");
+            }
+        } catch (error) {
+            alert("Network error.");
+        }
+    },
+
     fetchData: async () => {
         const start = document.getElementById('filterStart').value; 
         const end = document.getElementById('filterEnd').value; 
         const type = document.getElementById('filterType').value; 
         const tbody = document.getElementById('dataTableBody');
         
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-blue-500"><i class="fas fa-spinner fa-spin text-xl"></i></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-blue-500"><i class="fas fa-spinner fa-spin text-xl"></i></td></tr>';
         
         try {
             const data = await API.get(CONFIG.ENDPOINTS.GET_DATA);
@@ -219,7 +303,6 @@ export const RecordsManager = {
             
             let h = 0, p = 0, u = 0;
             const filtered = data.filter(r => {
-                // Ensure specific tabs explicitly omit the opposite status
                 if (type === 'Paid' && r.Payment_Status !== 'Paid') return false;
                 if (type === 'Unpaid' && r.Payment_Status === 'Paid') return false;
 
@@ -264,10 +347,16 @@ export const RecordsManager = {
                     <td class="px-2 py-2 text-right align-middle">
                         <div class="font-bold text-[11px] sm:text-xs text-gray-700">${Utils.formatCurrency(Utils.parseCurrency(r.Total_Earnings))}</div>
                     </td>
+                    <td class="px-2 py-2 text-center align-middle w-12 whitespace-nowrap">
+                        <button onclick="window.RecordsManager.editRecord('${r.Entry_ID}')" class="text-blue-500 hover:text-blue-700 mr-2 outline-none focus:outline-none"><i class="fas fa-edit"></i></button>
+                        <button onclick="window.RecordsManager.deleteRecord('${r.Entry_ID}')" class="text-red-500 hover:text-red-700 outline-none focus:outline-none"><i class="fas fa-trash"></i></button>
+                    </td>
                 </tr>
-            `).join('') : '<tr><td colspan="4" class="text-center py-6 text-gray-400">No records found.</td></tr>';
+            `).join('') : '<tr><td colspan="5" class="text-center py-6 text-gray-400">No records found.</td></tr>';
         } catch(e) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-red-500 font-bold">Failed to load data.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-red-500 font-bold">Failed to load data.</td></tr>';
         }
     }
 };
+
+window.RecordsManager = RecordsManager;
