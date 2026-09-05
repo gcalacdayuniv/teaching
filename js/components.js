@@ -54,6 +54,24 @@ export function injectComponents() {
             </div>
         </div>
 
+        <div id="duplicateRecordsModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+                <div class="bg-green-700 p-3 sm:p-4 flex justify-between items-center rounded-t-xl shrink-0">
+                    <h2 class="text-white font-bold text-base sm:text-lg"><i class="fas fa-copy mr-2"></i>Duplicate Selected Records</h2>
+                    <button type="button" id="closeDuplicateRecordsBtn" class="text-green-200 hover:text-white shrink-0"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <div class="p-3 sm:p-4 overflow-y-auto flex-1 custom-scrollbar bg-gray-50 rounded-b-xl">
+                    <form id="duplicateRecordsForm" class="space-y-4">
+                        <div id="duplicateRecordsContainer" class="space-y-4"></div>
+                        <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200">
+                            <button type="button" id="cancelDuplicateRecordsBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition bg-gray-200 rounded-lg">Cancel</button>
+                            <button type="submit" id="saveDuplicateRecordsBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow hover:bg-green-700 transition">Save Duplicates</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <div id="resourceModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
                 <h2 id="resourceModalTitle" class="text-lg font-bold mb-4 text-gray-800">Add Link</h2>
@@ -244,6 +262,9 @@ export function injectComponents() {
                     <div class="flex items-center gap-1 sm:gap-2">
                         <button id="editRecordsBtn" class="text-amber-500 hover:text-amber-700 p-1.5 sm:p-2 transition outline-none" title="Edit Selected">
                             <i class="fas fa-edit text-lg"></i>
+                        </button>
+                        <button id="duplicateRecordsBtn" class="text-green-500 hover:text-green-700 p-1.5 sm:p-2 transition outline-none" title="Duplicate Selected">
+                            <i class="fas fa-copy text-lg"></i>
                         </button>
                         <button id="deleteRecordsBtn" class="text-red-500 hover:text-red-700 p-1.5 sm:p-2 transition outline-none" title="Delete Selected">
                             <i class="fas fa-trash text-lg"></i>
