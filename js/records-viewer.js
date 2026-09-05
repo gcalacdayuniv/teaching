@@ -27,6 +27,10 @@ export const RecordsManager = {
             });
         }
 
+        // Previous and Next Month Toggle Buttons
+        document.getElementById('prevMonthBtn')?.addEventListener('click', () => RecordsManager.shiftMonth(-1));
+        document.getElementById('nextMonthBtn')?.addEventListener('click', () => RecordsManager.shiftMonth(1));
+
         document.querySelectorAll('.record-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 document.querySelectorAll('.record-tab').forEach(t => {
@@ -79,6 +83,28 @@ export const RecordsManager = {
         
         const cardUnpaid = document.getElementById('cardUnpaid');
         if (cardUnpaid) cardUnpaid.addEventListener('click', () => RecordsManager.openSummaryModal('Unpaid'));
+    },
+
+    shiftMonth: (offset) => {
+        const startInput = document.getElementById('filterStart');
+        const endInput = document.getElementById('filterEnd');
+        
+        let baseDate = new Date();
+        if (startInput && startInput.value) {
+            const parsed = new Date(startInput.value);
+            if (!isNaN(parsed.getTime())) {
+                baseDate = parsed;
+            }
+        }
+
+        const newDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+        const firstDay = new Date(newDate.getFullYear(), newDate.getMonth(), 1);
+        const lastDay = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0);
+
+        if (startInput) startInput.value = Utils.formatDateYYYYMMDD(firstDay);
+        if (endInput) endInput.value = Utils.formatDateYYYYMMDD(lastDay);
+        
+        RecordsManager.fetchData();
     },
 
     closeModal: (id) => {
