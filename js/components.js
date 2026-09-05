@@ -36,6 +36,24 @@ export function injectComponents() {
             </div>
         </div>
 
+        <div id="editRecordsModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+                <div class="bg-blue-800 p-3 sm:p-4 flex justify-between items-center rounded-t-xl shrink-0">
+                    <h2 class="text-white font-bold text-base sm:text-lg"><i class="fas fa-edit mr-2"></i>Edit Selected Records</h2>
+                    <button type="button" id="closeEditRecordsBtn" class="text-blue-200 hover:text-white shrink-0"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <div class="p-3 sm:p-4 overflow-y-auto flex-1 custom-scrollbar bg-gray-50 rounded-b-xl">
+                    <form id="editRecordsForm" class="space-y-4">
+                        <div id="editRecordsContainer" class="space-y-4"></div>
+                        <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200">
+                            <button type="button" id="cancelEditRecordsBtn" class="px-4 py-2 text-sm text-gray-500 font-bold hover:text-gray-700 transition bg-gray-200 rounded-lg">Cancel</button>
+                            <button type="submit" id="saveEditRecordsBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <div id="resourceModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-[300] items-center justify-center p-4">
             <div class="bg-white rounded-xl p-5 sm:p-6 w-full max-w-sm shadow-2xl">
                 <h2 id="resourceModalTitle" class="text-lg font-bold mb-4 text-gray-800">Add Link</h2>
@@ -217,17 +235,23 @@ export function injectComponents() {
                 </div>
             </div>
             <div class="bg-white p-3 rounded-xl border flex flex-col gap-2 shrink-0 shadow-sm">
-                <div class="flex justify-between items-center border-b">
-                    <div class="flex gap-4">
-                        <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-blue-600 text-blue-600 outline-none" data-type="Rendered">Rendered</button>
-                        <button class="record-tab px-4 py-2 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 outline-none" data-type="Paid">Paid</button>
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div class="flex gap-1 sm:gap-4">
+                        <button class="record-tab px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold border-b-2 border-blue-600 text-blue-600 outline-none" data-type="Rendered">Rendered</button>
+                        <button class="record-tab px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 outline-none" data-type="Paid">Paid</button>
                         <input type="hidden" id="filterType" value="Rendered">
                     </div>
-                    <button id="markPaidBtn" class="text-indigo-600 hover:text-indigo-800 p-2 mr-1 transition outline-none" title="Mark Selected as Paid">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </button>
+                    <div class="flex items-center gap-1 sm:gap-2">
+                        <button id="editRecordsBtn" class="text-amber-500 hover:text-amber-700 p-1.5 sm:p-2 transition outline-none" title="Edit Selected">
+                            <i class="fas fa-edit text-lg"></i>
+                        </button>
+                        <button id="deleteRecordsBtn" class="text-red-500 hover:text-red-700 p-1.5 sm:p-2 transition outline-none" title="Delete Selected">
+                            <i class="fas fa-trash text-lg"></i>
+                        </button>
+                        <button id="markPaidBtn" class="text-indigo-600 hover:text-indigo-800 p-1.5 sm:p-2 transition outline-none" title="Mark Selected as Paid">
+                            <i class="fas fa-check-circle text-lg"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2 w-full pt-1">
                     <input type="date" id="filterStart" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700">
