@@ -71,6 +71,12 @@ export const RecordsManager = {
         document.getElementById('cancelEditRecordsBtn')?.addEventListener('click', () => RecordsManager.closeModal('editRecordsModal'));
         document.getElementById('editRecordsForm')?.addEventListener('submit', RecordsManager.submitEdits);
 
+        // Duplicate Events
+        document.getElementById('duplicateRecordsBtn')?.addEventListener('click', RecordsManager.openDuplicateModal);
+        document.getElementById('closeDuplicateRecordsBtn')?.addEventListener('click', () => RecordsManager.closeModal('duplicateRecordsModal'));
+        document.getElementById('cancelDuplicateRecordsBtn')?.addEventListener('click', () => RecordsManager.closeModal('duplicateRecordsModal'));
+        document.getElementById('duplicateRecordsForm')?.addEventListener('submit', RecordsManager.submitDuplicates);
+
         // Summary Modals Events
         const closeSummaryBtn = document.getElementById('closeSummaryBtn');
         if (closeSummaryBtn) closeSummaryBtn.addEventListener('click', () => RecordsManager.closeModal('summaryModal'));
@@ -258,6 +264,101 @@ export const RecordsManager = {
             }
         } catch(err) {
             alert("Failed to save changes. Please check network connection.");
+        } finally {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        }
+    },
+
+    openDuplicateModal: () => {
+        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+        if (checkedBoxes.length === 0) return alert("Select at least one record to duplicate.");
+
+        const container = document.getElementById('duplicateRecordsContainer');
+        container.innerHTML = '';
+
+        Array.from(checkedBoxes).forEach(cb => {
+            const record = RecordsManager.cachedData.find(r => r.Entry_ID === cb.value);
+            if(!record) return;
+
+            const rate = (parseFloat(record.Total_Hours) > 0) ? (Utils.parseCurrency(record.Total_Earnings) / parseFloat(record.Total_Hours)).toFixed(2) : 0;
+
+            const block = document.createElement('div');
+            block.className = 'bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm relative duplicate-record-block';
+            block.innerHTML = `
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">New Date</label><input type="date" name="dup_Date" value="${Utils.formatDateYYYYMMDD(new Date())}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">University</label><input type="text" name="dup_University" value="${record.University || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">College</label><input type="text" name="dup_College" value="${record.College || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Subject</label><input type="text" name="dup_Subject_Code" value="${record.Subject_Code || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Start Time</label><input type="time" name="dup_Start_Time" value="${record.Start_Time || ''}" class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 time-input bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Total Hours</label><input type="number" step="0.5" name="dup_Total_Hours" value="${record.Total_Hours || 0}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 hours-input bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Hourly Rate</label><input type="number" step="0.01" name="dup_Rate" value="${rate}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 rate-input bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">End Time</label><input type="time" name="dup_End_Time" value="${record.End_Time || ''}" class="w-full border-none bg-gray-100 p-2 rounded text-xs outline-none font-bold text-gray-500 pointer-events-none end-time-input" readonly></div>
+                </div>
+            `;
+            container.appendChild(block);
+
+            block.addEventListener('input', (e) => {
+                if(e.target.classList.contains('time-input') || e.target.classList.contains('hours-input')) {
+                    const startStr = block.querySelector('.time-input').value;
+                    const hrs = parseFloat(block.querySelector('.hours-input').value) || 0;
+                    if(startStr && hrs) {
+                        const [h, m] = startStr.split(':').map(Number);
+                        const totalM = (h * 60) + m + (hrs * 60);
+                        const endH = Math.floor(totalM / 60) % 24;
+                        const endM = Math.round(totalM % 60);
+                        block.querySelector('.end-time-input').value = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                    }
+                }
+            });
+        });
+
+        const modal = document.getElementById('duplicateRecordsModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
+    submitDuplicates: async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('saveDuplicateRecordsBtn');
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+        btn.disabled = true;
+
+        const container = document.getElementById('duplicateRecordsContainer');
+        const blocks = container.querySelectorAll('.duplicate-record-block');
+        const newRecords = [];
+
+        blocks.forEach(block => {
+            newRecords.push({
+                Date: block.querySelector('input[name="dup_Date"]').value,
+                University: block.querySelector('input[name="dup_University"]').value,
+                College: block.querySelector('input[name="dup_College"]').value,
+                Subject_Code: block.querySelector('input[name="dup_Subject_Code"]').value,
+                Start_Time: block.querySelector('input[name="dup_Start_Time"]').value,
+                End_Time: block.querySelector('input[name="dup_End_Time"]').value,
+                Total_Hours: parseFloat(block.querySelector('input[name="dup_Total_Hours"]').value) || 0,
+                Rate: parseFloat(block.querySelector('input[name="dup_Rate"]').value) || 0
+            });
+        });
+
+        try {
+            const res = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                action: 'add_hours_batch',
+                records: newRecords
+            });
+
+            if(res.status === 'success') {
+                RecordsManager.closeModal('duplicateRecordsModal');
+                RecordsManager.fetchData();
+            } else {
+                alert("Error duplicating records: " + (res.message || 'Unknown error'));
+            }
+        } catch(err) {
+            alert("Failed to duplicate records. Please check network connection.");
         } finally {
             btn.innerHTML = origHTML;
             btn.disabled = false;
