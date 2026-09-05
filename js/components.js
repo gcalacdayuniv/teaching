@@ -253,10 +253,16 @@ export function injectComponents() {
                         </button>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 w-full pt-1">
-                    <input type="date" id="filterStart" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700">
-                    <span class="text-xs font-bold text-gray-400">to</span>
-                    <input type="date" id="filterEnd" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700">
+                <div class="flex items-center gap-1 sm:gap-2 w-full pt-1">
+                    <button id="prevMonthBtn" class="text-gray-500 hover:text-blue-600 px-2 sm:px-3 py-1.5 transition outline-none bg-gray-100 hover:bg-blue-50 rounded border border-gray-200" title="Previous Month">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <input type="date" id="filterStart" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700 min-w-0">
+                    <span class="text-[10px] sm:text-xs font-bold text-gray-400 text-center">to</span>
+                    <input type="date" id="filterEnd" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700 min-w-0">
+                    <button id="nextMonthBtn" class="text-gray-500 hover:text-blue-600 px-2 sm:px-3 py-1.5 transition outline-none bg-gray-100 hover:bg-blue-50 rounded border border-gray-200" title="Next Month">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                     <button id="clearDatesBtn" class="text-gray-400 hover:text-red-500 px-2 py-1.5 transition outline-none" title="Clear Dates">
                         <i class="fas fa-times"></i>
                     </button>
