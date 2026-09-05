@@ -1,4 +1,4 @@
-import { CONFIG, API } from './globals.js';
+import { CONFIG, API, Utils } from './globals.js';
 import { FinanceUtils } from './finance-utils.js';
 import { FinanceUI } from './finance-ui.js';
 import { FinanceForm } from './finance-form.js';
@@ -21,6 +21,31 @@ export const FinanceManager = {
     init() {
         document.getElementById('financeRecordForm')?.addEventListener('submit', this.submitRecords.bind(this));
         document.getElementById('newProjectForm')?.addEventListener('submit', this.submitNewProject.bind(this));
+        
+        document.getElementById('finPrevMonthBtn')?.addEventListener('click', () => this.shiftMonth(-1));
+        document.getElementById('finNextMonthBtn')?.addEventListener('click', () => this.shiftMonth(1));
+    },
+
+    shiftMonth(offset) {
+        const fromInput = document.getElementById('finFilterFrom');
+        const toInput = document.getElementById('finFilterTo');
+        
+        let baseDate = new Date();
+        if (fromInput && fromInput.value) {
+            const parsed = new Date(fromInput.value);
+            if (!isNaN(parsed.getTime())) {
+                baseDate = parsed;
+            }
+        }
+
+        const newDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+        const firstDay = new Date(newDate.getFullYear(), newDate.getMonth(), 1);
+        const lastDay = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0);
+
+        if (fromInput) fromInput.value = Utils.formatDateYYYYMMDD(firstDay);
+        if (toInput) toInput.value = Utils.formatDateYYYYMMDD(lastDay);
+        
+        this.applyFilter();
     },
 
     async refreshLedger() {
@@ -39,17 +64,15 @@ export const FinanceManager = {
                 };
 
                 const fromInput = document.getElementById('finFilterFrom');
+                const toInput = document.getElementById('finFilterTo');
+                
                 if (!fromInput.value) {
                     const now = new Date();
-                    // Setup GMT+8 default filtering
-                    const dateStrManila = new Intl.DateTimeFormat('en-CA', { 
-                        timeZone: 'Asia/Manila', 
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit' 
-                    }).format(now);
-                    const [year, month] = dateStrManila.split('-');
-                    fromInput.value = `${year}-${month}-01`;
+                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    
+                    if (fromInput) fromInput.value = Utils.formatDateYYYYMMDD(firstDay);
+                    if (toInput) toInput.value = Utils.formatDateYYYYMMDD(lastDay);
                 }
 
                 // Render local data instantly
