@@ -287,12 +287,13 @@ export const RecordsManager = {
             block.className = 'bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm relative duplicate-record-block';
             block.innerHTML = `
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">New Date</label><input type="date" name="dup_Date" value="${Utils.formatDateYYYYMMDD(new Date())}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Start Date</label><input type="date" name="dup_StartDate" value="${Utils.formatDateYYYYMMDD(new Date())}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">End Date</label><input type="date" name="dup_EndDate" value="${Utils.formatDateYYYYMMDD(new Date())}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
                     <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">University</label><input type="text" name="dup_University" value="${record.University || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
                     <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">College</label><input type="text" name="dup_College" value="${record.College || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
-                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Subject</label><input type="text" name="dup_Subject_Code" value="${record.Subject_Code || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Subject</label><input type="text" name="dup_Subject_Code" value="${record.Subject_Code || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 bg-gray-50"></div>
                     <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Start Time</label><input type="time" name="dup_Start_Time" value="${record.Start_Time || ''}" class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 time-input bg-gray-50"></div>
                     <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Total Hours</label><input type="number" step="0.5" name="dup_Total_Hours" value="${record.Total_Hours || 0}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 hours-input bg-gray-50"></div>
                     <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Hourly Rate</label><input type="number" step="0.01" name="dup_Rate" value="${rate}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500 rate-input bg-gray-50"></div>
@@ -331,19 +332,55 @@ export const RecordsManager = {
         const container = document.getElementById('duplicateRecordsContainer');
         const blocks = container.querySelectorAll('.duplicate-record-block');
         const newRecords = [];
+        let hasError = false;
 
         blocks.forEach(block => {
-            newRecords.push({
-                Date: block.querySelector('input[name="dup_Date"]').value,
-                University: block.querySelector('input[name="dup_University"]').value,
-                College: block.querySelector('input[name="dup_College"]').value,
-                Subject_Code: block.querySelector('input[name="dup_Subject_Code"]').value,
-                Start_Time: block.querySelector('input[name="dup_Start_Time"]').value,
-                End_Time: block.querySelector('input[name="dup_End_Time"]').value,
-                Total_Hours: parseFloat(block.querySelector('input[name="dup_Total_Hours"]').value) || 0,
-                Rate: parseFloat(block.querySelector('input[name="dup_Rate"]').value) || 0
-            });
+            if (hasError) return;
+
+            const startDateStr = block.querySelector('input[name="dup_StartDate"]').value;
+            const endDateStr = block.querySelector('input[name="dup_EndDate"]').value;
+            const university = block.querySelector('input[name="dup_University"]').value;
+            const college = block.querySelector('input[name="dup_College"]').value;
+            const subjectCode = block.querySelector('input[name="dup_Subject_Code"]').value;
+            const startTime = block.querySelector('input[name="dup_Start_Time"]').value;
+            const endTime = block.querySelector('input[name="dup_End_Time"]').value;
+            const totalHours = parseFloat(block.querySelector('input[name="dup_Total_Hours"]').value) || 0;
+            const rate = parseFloat(block.querySelector('input[name="dup_Rate"]').value) || 0;
+
+            let currentDate = new Date(startDateStr);
+            const limitDate = new Date(endDateStr);
+
+            if (currentDate > limitDate) {
+                alert(`Error: Start Date is after the End Date for subject ${subjectCode}.`);
+                hasError = true;
+                return;
+            }
+
+            while (currentDate <= limitDate) {
+                const yyyy = currentDate.getFullYear();
+                const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(currentDate.getDate()).padStart(2, '0');
+                
+                newRecords.push({
+                    Date: `${yyyy}-${mm}-${dd}`,
+                    University: university,
+                    College: college,
+                    Subject_Code: subjectCode,
+                    Start_Time: startTime,
+                    End_Time: endTime,
+                    Total_Hours: totalHours,
+                    Rate: rate
+                });
+
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
         });
+
+        if (hasError) {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+            return;
+        }
 
         try {
             const res = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
