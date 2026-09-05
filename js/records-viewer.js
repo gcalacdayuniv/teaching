@@ -8,6 +8,14 @@ export const RecordsManager = {
         const endInput = document.getElementById('filterEnd');
         const clearDatesBtn = document.getElementById('clearDatesBtn');
 
+        // Automatically default filter strictly to the current month when the module initializes
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        if (startInput) startInput.value = Utils.formatDateYYYYMMDD(firstDay);
+        if (endInput) endInput.value = Utils.formatDateYYYYMMDD(lastDay);
+
         if (startInput) startInput.addEventListener('change', RecordsManager.fetchData);
         if (endInput) endInput.addEventListener('change', RecordsManager.fetchData);
         
@@ -42,34 +50,26 @@ export const RecordsManager = {
             });
         }
 
+        // Action Buttons Events
         const markPaidBtn = document.getElementById('markPaidBtn');
-        if (markPaidBtn) {
-            markPaidBtn.addEventListener('click', RecordsManager.openPaymentModal);
-        }
+        if (markPaidBtn) markPaidBtn.addEventListener('click', RecordsManager.openPaymentModal);
 
         const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
-        if (cancelPaymentBtn) {
-            cancelPaymentBtn.addEventListener('click', () => {
-                const modal = document.getElementById('paymentModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            });
-        }
+        if (cancelPaymentBtn) cancelPaymentBtn.addEventListener('click', () => RecordsManager.closeModal('paymentModal'));
 
         const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
-        if (confirmPaymentBtn) {
-            confirmPaymentBtn.addEventListener('click', RecordsManager.confirmMarkAsPaid);
-        }
+        if (confirmPaymentBtn) confirmPaymentBtn.addEventListener('click', RecordsManager.confirmMarkAsPaid);
+
+        // Edit and Delete Events
+        document.getElementById('editRecordsBtn')?.addEventListener('click', RecordsManager.openEditModal);
+        document.getElementById('deleteRecordsBtn')?.addEventListener('click', RecordsManager.deleteSelectedRecords);
+        document.getElementById('closeEditRecordsBtn')?.addEventListener('click', () => RecordsManager.closeModal('editRecordsModal'));
+        document.getElementById('cancelEditRecordsBtn')?.addEventListener('click', () => RecordsManager.closeModal('editRecordsModal'));
+        document.getElementById('editRecordsForm')?.addEventListener('submit', RecordsManager.submitEdits);
 
         // Summary Modals Events
         const closeSummaryBtn = document.getElementById('closeSummaryBtn');
-        if (closeSummaryBtn) {
-            closeSummaryBtn.addEventListener('click', () => {
-                const modal = document.getElementById('summaryModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            });
-        }
+        if (closeSummaryBtn) closeSummaryBtn.addEventListener('click', () => RecordsManager.closeModal('summaryModal'));
 
         const cardRendered = document.getElementById('cardRendered');
         if (cardRendered) cardRendered.addEventListener('click', () => RecordsManager.openSummaryModal('Rendered'));
@@ -79,6 +79,14 @@ export const RecordsManager = {
         
         const cardUnpaid = document.getElementById('cardUnpaid');
         if (cardUnpaid) cardUnpaid.addEventListener('click', () => RecordsManager.openSummaryModal('Unpaid'));
+    },
+
+    closeModal: (id) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('hidden'); 
+            el.classList.remove('flex');
+        }
     },
 
     openPaymentModal: () => {
@@ -115,9 +123,7 @@ export const RecordsManager = {
             });
             
             if (data.status === 'success') {
-                const modal = document.getElementById('paymentModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
+                RecordsManager.closeModal('paymentModal');
                 RecordsManager.fetchData(); 
             } else {
                 alert("Failed to update records: " + (data.message || 'Unknown error'));
@@ -127,6 +133,138 @@ export const RecordsManager = {
             console.error("Payment Update Error:", error);
         } finally {
             btn.innerHTML = originalBtnHTML; 
+            btn.disabled = false;
+        }
+    },
+
+    openEditModal: () => {
+        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+        if (checkedBoxes.length === 0) return alert("Select at least one record to edit.");
+
+        const container = document.getElementById('editRecordsContainer');
+        container.innerHTML = '';
+
+        Array.from(checkedBoxes).forEach(cb => {
+            const record = RecordsManager.cachedData.find(r => r.Entry_ID === cb.value);
+            if(!record) return;
+
+            // Recalculate original rate automatically
+            const rate = (parseFloat(record.Total_Hours) > 0) ? (Utils.parseCurrency(record.Total_Earnings) / parseFloat(record.Total_Hours)).toFixed(2) : 0;
+
+            const block = document.createElement('div');
+            block.className = 'bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm relative edit-record-block';
+            block.innerHTML = `
+                <input type="hidden" name="edit_Entry_ID" value="${record.Entry_ID}">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Date</label><input type="date" name="edit_Date" value="${Utils.formatDateYYYYMMDD(record.Date)}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">University</label><input type="text" name="edit_University" value="${record.University || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">College</label><input type="text" name="edit_College" value="${record.College || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Subject</label><input type="text" name="edit_Subject_Code" value="${record.Subject_Code || ''}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 bg-gray-50"></div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Start Time</label><input type="time" name="edit_Start_Time" value="${record.Start_Time || ''}" class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 time-input bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Total Hours</label><input type="number" step="0.5" name="edit_Total_Hours" value="${record.Total_Hours || 0}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 hours-input bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Hourly Rate</label><input type="number" step="0.01" name="edit_Rate" value="${rate}" required class="w-full border p-2 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 rate-input bg-gray-50"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">End Time</label><input type="time" name="edit_End_Time" value="${record.End_Time || ''}" class="w-full border-none bg-gray-100 p-2 rounded text-xs outline-none font-bold text-gray-500 pointer-events-none end-time-input" readonly></div>
+                </div>
+            `;
+            container.appendChild(block);
+
+            // Automatically recalculate end-time dynamically inside the modal form based on the updated edits
+            block.addEventListener('input', (e) => {
+                if(e.target.classList.contains('time-input') || e.target.classList.contains('hours-input')) {
+                    const startStr = block.querySelector('.time-input').value;
+                    const hrs = parseFloat(block.querySelector('.hours-input').value) || 0;
+                    if(startStr && hrs) {
+                        const [h, m] = startStr.split(':').map(Number);
+                        const totalM = (h * 60) + m + (hrs * 60);
+                        const endH = Math.floor(totalM / 60) % 24;
+                        const endM = Math.round(totalM % 60);
+                        block.querySelector('.end-time-input').value = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                    }
+                }
+            });
+        });
+
+        const modal = document.getElementById('editRecordsModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
+    submitEdits: async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('saveEditRecordsBtn');
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+        btn.disabled = true;
+
+        const container = document.getElementById('editRecordsContainer');
+        const blocks = container.querySelectorAll('.edit-record-block');
+        const recordsToUpdate = [];
+
+        blocks.forEach(block => {
+            const hrs = parseFloat(block.querySelector('input[name="edit_Total_Hours"]').value) || 0;
+            const rate = parseFloat(block.querySelector('input[name="edit_Rate"]').value) || 0;
+            recordsToUpdate.push({
+                Entry_ID: block.querySelector('input[name="edit_Entry_ID"]').value,
+                Date: block.querySelector('input[name="edit_Date"]').value,
+                University: block.querySelector('input[name="edit_University"]').value,
+                College: block.querySelector('input[name="edit_College"]').value,
+                Subject_Code: block.querySelector('input[name="edit_Subject_Code"]').value,
+                Start_Time: block.querySelector('input[name="edit_Start_Time"]').value,
+                End_Time: block.querySelector('input[name="edit_End_Time"]').value,
+                Total_Hours: hrs,
+                Total_Earnings: hrs * rate
+            });
+        });
+
+        try {
+            const res = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                action: 'edit_hours_batch',
+                records: recordsToUpdate
+            });
+
+            if(res.status === 'success') {
+                RecordsManager.closeModal('editRecordsModal');
+                RecordsManager.fetchData();
+            } else {
+                alert("Error updating records: " + (res.message || 'Unknown error'));
+            }
+        } catch(err) {
+            alert("Failed to save changes. Please check network connection.");
+        } finally {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        }
+    },
+
+    deleteSelectedRecords: async () => {
+        const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+        if (checkedBoxes.length === 0) return alert("Select at least one record to delete.");
+
+        if (!confirm(`Are you sure you want to delete ${checkedBoxes.length} record(s)? This action cannot be undone.`)) return;
+
+        const entryIds = Array.from(checkedBoxes).map(cb => cb.value);
+        const btn = document.getElementById('deleteRecordsBtn');
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const res = await API.post(CONFIG.ENDPOINTS.POST_ACTION, {
+                action: 'delete_hours_batch',
+                entryIds: entryIds
+            });
+
+            if(res.status === 'success') {
+                RecordsManager.fetchData();
+            } else {
+                alert("Error deleting records: " + (res.message || 'Unknown error'));
+            }
+        } catch(err) {
+            alert("Failed to delete records. Please check network connection.");
+        } finally {
+            btn.innerHTML = origHTML;
             btn.disabled = false;
         }
     },
@@ -219,7 +357,6 @@ export const RecordsManager = {
             
             let h = 0, p = 0, u = 0;
             const filtered = data.filter(r => {
-                // Ensure specific tabs explicitly omit the opposite status
                 if (type === 'Paid' && r.Payment_Status !== 'Paid') return false;
                 if (type === 'Unpaid' && r.Payment_Status === 'Paid') return false;
 
