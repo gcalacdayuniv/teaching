@@ -94,12 +94,10 @@ export default {
           }
         }
 
-        // --- SCOPED ENDPOINTS (Require userId) ---
         if (!['login', 'update_details', 'update_avatar', 'update_password'].includes(body.action) && !userId) {
             return new Response(JSON.stringify({ status: "error", message: "Unauthorized: Missing User ID" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
-        // --- IMPORTED DATABASES ROUTES ---
         if (body.action === 'add_imported_db') {
           const dbId = crypto.randomUUID();
           await env.DB.prepare("INSERT INTO Imported_Databases (ID, User_ID, Project_Name, API_URL) VALUES (?, ?, ?, ?)")
@@ -140,6 +138,33 @@ export default {
 
           await env.DB.batch(batchList);
           return new Response(JSON.stringify({ status: "success", count: batchList.length }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'edit_hours_batch') {
+          const updateStmt = env.DB.prepare(`
+            UPDATE Teaching_Hours 
+            SET Date = ?, Start_Time = ?, End_Time = ?, Total_Hours = ?, University = ?, College = ?, Subject_Code = ?, Total_Earnings = ?
+            WHERE Entry_ID = ? AND User_ID = ?
+          `);
+
+          const batchList = body.records.map(record => {
+             return updateStmt.bind(
+               record.Date, record.Start_Time || '', record.End_Time || '', record.Total_Hours, 
+               record.University, record.College, record.Subject_Code, record.Total_Earnings,
+               record.Entry_ID, userId
+             );
+          });
+
+          await env.DB.batch(batchList);
+          return new Response(JSON.stringify({ status: "success", count: batchList.length }), { headers: { "content-type": "application/json", ...corsHeaders } });
+        }
+
+        if (body.action === 'delete_hours_batch') {
+          const placeholders = body.entryIds.map(() => '?').join(',');
+          const query = `DELETE FROM Teaching_Hours WHERE User_ID = ? AND Entry_ID IN (${placeholders})`;
+          await env.DB.prepare(query).bind(userId, ...body.entryIds).run();
+          
+          return new Response(JSON.stringify({ status: "success" }), { headers: { "content-type": "application/json", ...corsHeaders } });
         }
 
         if (body.action === 'update_payment') {
