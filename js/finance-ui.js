@@ -53,15 +53,17 @@ export const FinanceUI = {
                     </div>
                 </div>
 
-                <div class="flex items-center gap-1 sm:gap-2 bg-gray-50 p-1.5 sm:p-2 rounded-xl border border-gray-100 w-full min-w-0">
-                    <div class="relative flex-1 min-w-0">
-                        <input type="date" id="finFilterFrom" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
-                    </div>
-                    <span class="text-[10px] sm:text-xs text-gray-400 font-semibold shrink-0"><i class="fas fa-arrow-right"></i></span>
-                    <div class="relative flex-1 min-w-0">
-                        <input type="date" id="finFilterTo" class="w-full text-[10px] sm:text-sm px-1 sm:px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 bg-white shadow-sm min-w-0" onchange="FinanceManager.applyFilter()">
-                    </div>
-                    <button onclick="FinanceManager.clearFilter()" class="bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-400 px-2 sm:px-3 py-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0" title="Clear Dates">
+                <div class="flex items-center gap-1 sm:gap-2 w-full pt-1">
+                    <button id="finPrevMonthBtn" class="text-gray-500 hover:text-blue-600 px-2 sm:px-3 py-1.5 transition outline-none bg-gray-100 hover:bg-blue-50 rounded border border-gray-200" title="Previous Month">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <input type="date" id="finFilterFrom" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700 min-w-0" onchange="FinanceManager.applyFilter()">
+                    <span class="text-[10px] sm:text-xs font-bold text-gray-400 text-center">to</span>
+                    <input type="date" id="finFilterTo" class="border p-1.5 rounded text-xs outline-none flex-1 bg-gray-50 text-gray-700 min-w-0" onchange="FinanceManager.applyFilter()">
+                    <button id="finNextMonthBtn" class="text-gray-500 hover:text-blue-600 px-2 sm:px-3 py-1.5 transition outline-none bg-gray-100 hover:bg-blue-50 rounded border border-gray-200" title="Next Month">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button onclick="FinanceManager.clearFilter()" class="text-gray-400 hover:text-red-500 px-2 py-1.5 transition outline-none" title="Clear Dates">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
