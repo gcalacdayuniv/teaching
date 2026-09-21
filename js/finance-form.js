@@ -199,6 +199,23 @@ export const FinanceForm = {
         }
     },
 
+    calculateAmount(input) {
+        if (!input || !input.value) return;
+        try {
+            // Remove anything that isn't a digit, dot, or basic math operator
+            const sanitized = input.value.replace(/[^0-9.\+\-\*\/\(\)]/g, '');
+            if (sanitized) {
+                // Safely evaluate the math string
+                const result = new Function('return (' + sanitized + ')')();
+                if (!isNaN(result) && isFinite(result)) {
+                    input.value = Number(result).toFixed(2);
+                }
+            }
+        } catch (e) {
+            // If the math expression is invalid (e.g. "100+"), ignore and leave it as is for user to fix
+        }
+    },
+
     addRecordEntry() {
         const idx = this.recordEntries.length;
         this.recordEntries.push({ idx });
@@ -230,7 +247,7 @@ export const FinanceForm = {
             <div class="flex gap-1.5 mb-1.5 items-center">
                 <div class="relative flex-1">
                     <span class="absolute left-1.5 top-[3px] text-gray-400 font-bold text-[11px]">₱</span>
-                    <input type="number" id="finAmt_${idx}" class="w-full pl-4 pr-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] font-bold text-gray-800 outline-none focus:ring-1 focus:ring-blue-500" placeholder="0.00" step="0.01" required>
+                    <input type="text" inputmode="text" id="finAmt_${idx}" onblur="FinanceManager.calculateAmount(this)" class="w-full pl-4 pr-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[11px] font-bold text-gray-800 outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g. 100+50" required>
                 </div>
                 <div class="flex items-center justify-center px-1">
                     <label for="finFile_${idx}" title="Add/Update Image" class="cursor-pointer text-gray-400 hover:text-blue-500 transition relative">
@@ -300,6 +317,10 @@ export const FinanceForm = {
             if (!idxMatch) continue;
             const idx = idxMatch[1];
 
+            // Force calculate amount if user submits without triggering a blur event on the field
+            const amtInput = document.getElementById(`finAmt_${idx}`);
+            if (amtInput) this.calculateAmount(amtInput);
+
             const recordId = document.getElementById(`finId_${idx}`)?.value;
             const date = document.getElementById(`finDate_${idx}`)?.value;
             const type = document.getElementById(`finType_${idx}`)?.value;
@@ -310,7 +331,7 @@ export const FinanceForm = {
             const subGroup4 = document.getElementById(`finSubGroup4_${idx}`)?.value;
             const subGroup5 = document.getElementById(`finSubGroup5_${idx}`)?.value;
             const desc = document.getElementById(`finDesc_${idx}`)?.value;
-            const amt = document.getElementById(`finAmt_${idx}`)?.value;
+            const amt = amtInput?.value;
             const projName = document.getElementById(`finProject_${idx}`)?.value;
             
             const fileInput = document.getElementById(`finFile_${idx}`);
@@ -326,7 +347,7 @@ export const FinanceForm = {
                 }
             }
 
-            if (!date || !type || !desc || !amt) continue;
+            if (!date || !type || !desc || !amt || isNaN(amt)) continue;
 
             let finalProjectId = null;
             if (projName) {
